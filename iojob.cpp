@@ -32,6 +32,14 @@ void TIOWorker::Exec(int timeout) {
     }
 }
 
-TIOTask::TIOTask(TIOWorker *context) {
-
+TIOTask::TIOTask(TIOWorker *context, uint32_t events, int fd)
+    : context(context)
+    , events(events)
+    , fd(fd)
+{
+    epoll_event event;
+    event.events = events;
+    // event.data.fd = fd;
+    event.data.ptr = this;
+    context->Add(fd, &event);
 }

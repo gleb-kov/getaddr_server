@@ -36,7 +36,7 @@ private:
 
 class TIOTask {
 public:
-    explicit TIOTask(TIOWorker *context);
+    explicit TIOTask(TIOWorker *context, uint32_t events, int fd);
 
     void Callback(uint32_t events);
 
@@ -51,7 +51,10 @@ public:
     TIOTask &operator=(TIOTask &&) = delete;
 
 private:
-
+    TIOWorker * context;
+    uint32_t events;
+    int fd;
+    // callback func
 };
 
 
