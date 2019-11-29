@@ -10,8 +10,8 @@ TServer::TServer(TIOWorker &io_context, uint32_t address, uint16_t port)
 
     sockaddr_in sain;
     sain.sin_family = AF_INET;
-    sain.sin_addr.s_addr = htonl(address);
-    sain.sin_port = htons(port);
+    sain.sin_addr.s_addr = address;
+    sain.sin_port = port;
 
     int bind_code = bind(fd, reinterpret_cast<sockaddr const *>(&sain), sizeof sain);
 
@@ -25,13 +25,17 @@ TServer::TServer(TIOWorker &io_context, uint32_t address, uint16_t port)
         throw std::runtime_error("ERROR: TServer listen() returned some negative number");
     }
 
-    auto tmp = new TIOTask(&io_context, EPOLLIN, fd, [this, &io_context, fd] {
+    auto tmp = new TIOTask(&io_context, EPOLLIN, fd, [this, &io_context, fd](uint32_t events) {
         int s = accept4(fd, nullptr, nullptr, SOCK_NONBLOCK);
-        // if (s < 0)
-        TIOTask(&io_context, EPOLLIN, s, [s] {
-            //char buf[1024] = "hi there";
-            //send(s, &buf, 10, 0);
+        if (s < 0) return;
+
+        auto child = new TIOTask(&io_context, (EPOLLIN | EPOLLOUT), s, [s](uint32_t events) {
+            char buf[20] = "hi there";
+            if (events & EPOLLOUT) {
+                send(s, &buf, sizeof buf, 0);
+            }
         });
+        Connections.insert({child, std::unique_ptr<TIOTask>(child)});
     });
-    Task = std::unique_ptr<TIOTask>(tmp);
+    // Task = std::unique_ptr<TIOTask>(tmp);
 }

@@ -2,7 +2,10 @@
 
 TIOWorker::TIOWorker() {
     efd = epoll_create1(0);
-    // if (fd < 0)
+
+    if (efd < 0) {
+        throw std::runtime_error("ERROR: Epoll creation failed");
+    }
 }
 
 void TIOWorker::Add(int fd, epoll_event *task) {
@@ -33,16 +36,19 @@ void TIOWorker::Exec(int timeout) {
     std::array<epoll_event, TIOWORKER_EPOLL_MAX> events{};
     while (true) {
         int count = epoll_wait(efd, events.data(), TIOWORKER_EPOLL_MAX, timeout);
-        // if (count < 0)
+
+        if (count < 0) {
+            throw std::runtime_error("ERROR: epoll_wait() returned some negative number");
+        }
 
         for (auto it = events.begin(); it != events.begin() + count; it++) {
-            // try catch
+            // try catch ?
             static_cast<TIOTask *>(it->data.ptr)->Callback(it->events);
         }
     }
 }
 
-TIOTask::TIOTask(TIOWorker *context, uint32_t events, int fd, std::function<void()> callback)
+TIOTask::TIOTask(TIOWorker *context, uint32_t events, int fd, std::function<void(uint32_t)> callback)
         : Context(context), Events(events), fd(fd), Callback_handler(std::move(callback)) {
     epoll_event event;
     event.events = events;
@@ -52,6 +58,10 @@ TIOTask::TIOTask(TIOWorker *context, uint32_t events, int fd, std::function<void
 }
 
 void TIOTask::Callback(uint32_t events) {
-    // simple, only for accepting sockets
-    Callback_handler();
+    //simple, only for accepting sockets
+    Callback_handler(events);
+}
+
+TIOTask::~TIOTask() {
+    // close(fd);
 }

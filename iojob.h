@@ -5,6 +5,7 @@
 #include <array>
 #include <memory>
 #include <functional>
+#include <unistd.h>
 
 class TIOWorker {
 public:
@@ -37,11 +38,11 @@ private:
 
 class TIOTask {
 public:
-    explicit TIOTask(TIOWorker *context, uint32_t events, int fd, std::function<void()> callback);
+    explicit TIOTask(TIOWorker *context, uint32_t events, int fd, std::function<void(uint32_t)> callback);
 
     void Callback(uint32_t events);
 
-    ~TIOTask() = default;
+    ~TIOTask();
 
     TIOTask(TIOTask const &) = delete;
 
@@ -55,8 +56,7 @@ private:
     TIOWorker *Context;
     uint32_t Events;
     int fd;
-    std::function<void()> Callback_handler;
+    std::function<void(uint32_t)> Callback_handler;
 };
-
 
 #endif //GETADDR_SERVER_IOWORKER_H

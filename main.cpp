@@ -4,7 +4,7 @@
 
 int main() {
     TIOWorker io_context;
-    TServer(io_context, htonl(INADDR_ANY), 1539);
-    io_context.Exec();
+    TServer server(io_context, htonl(INADDR_ANY), htons(58239));
+    io_context.Exec(1000);
     return 0;
 }
