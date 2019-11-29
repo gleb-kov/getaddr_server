@@ -4,6 +4,7 @@
 #include <sys/epoll.h>
 #include <array>
 #include <memory>
+#include <functional>
 
 class TIOWorker {
 public:
@@ -36,7 +37,7 @@ private:
 
 class TIOTask {
 public:
-    explicit TIOTask(TIOWorker *context, uint32_t events, int fd);
+    explicit TIOTask(TIOWorker *context, uint32_t events, int fd, std::function<void()> callback);
 
     void Callback(uint32_t events);
 
@@ -51,10 +52,10 @@ public:
     TIOTask &operator=(TIOTask &&) = delete;
 
 private:
-    TIOWorker * context;
-    uint32_t events;
+    TIOWorker *Context;
+    uint32_t Events;
     int fd;
-    // callback func
+    std::function<void()> Callback_handler;
 };
 
 

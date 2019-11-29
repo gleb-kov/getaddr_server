@@ -28,7 +28,7 @@ private:
     const uint32_t Address;
     const uint16_t Port;
 
-    int fd;
+    std::unique_ptr<TIOTask> Task;
 
     // std::unordered_map<TClient *, std::unique_ptr<TClient>> Connections;
 };
