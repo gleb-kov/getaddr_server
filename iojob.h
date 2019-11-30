@@ -1,10 +1,11 @@
 #ifndef GETADDR_SERVER_IOWORKER_H
 #define GETADDR_SERVER_IOWORKER_H
 
-#include <sys/epoll.h>
 #include <array>
-#include <memory>
+#include <csignal>
 #include <functional>
+#include <memory>
+#include <sys/epoll.h>
 #include <unistd.h>
 
 class TIOWorker {

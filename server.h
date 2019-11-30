@@ -2,9 +2,9 @@
 #define GETADDR_SERVER_SERVER_H
 
 #include <memory>
-#include <unordered_map>
 #include <netinet/in.h>
 #include <sys/socket.h>
+#include <unordered_map>
 
 #include "iojob.h"
 
@@ -26,7 +26,7 @@ private:
     const uint32_t Address;
     const uint16_t Port;
 
-    // std::unique_ptr<TIOTask> Task;
+    std::unique_ptr<TIOTask> Task;
 
     std::unordered_map<TIOTask *, std::unique_ptr<TIOTask>> Connections;
 };

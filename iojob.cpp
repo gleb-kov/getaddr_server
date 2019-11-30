@@ -1,4 +1,13 @@
+#include <sys/socket.h>
 #include "iojob.h"
+
+namespace {
+    volatile sig_atomic_t quitSignalFlag = 0;
+
+    void signalHandler(int signal) {
+        quitSignalFlag = 1;
+    }
+}
 
 TIOWorker::TIOWorker() {
     efd = epoll_create1(0);
@@ -33,8 +42,15 @@ void TIOWorker::Remove(int fd, epoll_event *task) {
 }
 
 void TIOWorker::Exec(int timeout) {
+    signal(SIGINT, ::signalHandler);
+    signal(SIGTERM, ::signalHandler);
+    signal(SIGPIPE, SIG_IGN);
+
     std::array<epoll_event, TIOWORKER_EPOLL_MAX> events{};
     while (true) {
+        if (::quitSignalFlag == 1)
+            return;
+
         int count = epoll_wait(efd, events.data(), TIOWORKER_EPOLL_MAX, timeout);
 
         if (count < 0) {
@@ -42,7 +58,7 @@ void TIOWorker::Exec(int timeout) {
         }
 
         for (auto it = events.begin(); it != events.begin() + count; it++) {
-            // try catch ?
+            // exceptions ?
             static_cast<TIOTask *>(it->data.ptr)->Callback(it->events);
         }
     }
@@ -50,18 +66,21 @@ void TIOWorker::Exec(int timeout) {
 
 TIOTask::TIOTask(TIOWorker *context, uint32_t events, int fd, std::function<void(uint32_t)> callback)
         : Context(context), Events(events), fd(fd), Callback_handler(std::move(callback)) {
-    epoll_event event;
-    event.events = events;
-    // event.data.fd = fd;
-    event.data.ptr = this;
+    epoll_event event{Events, this};
     Context->Add(fd, &event);
 }
 
 void TIOTask::Callback(uint32_t events) {
-    //simple, only for accepting sockets
     Callback_handler(events);
 }
 
 TIOTask::~TIOTask() {
-    // close(fd);
+    if (Context) {
+        epoll_event event;
+        event.events = Events;
+        event.data.ptr = this;
+        Context->Remove(fd, &event);
+    }
+    shutdown(fd, SHUT_RDWR);
+    close(fd);
 }
