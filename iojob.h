@@ -6,11 +6,12 @@
 #include <functional>
 #include <memory>
 #include <sys/epoll.h>
+#include <sys/socket.h>
 #include <unistd.h>
 
 class TIOWorker {
 public:
-    TIOWorker();
+    TIOWorker() noexcept(false);
 
     void Add(int fd, epoll_event *task);
 
@@ -57,7 +58,7 @@ private:
     TIOWorker *Context;
     uint32_t Events;
     int fd;
-    std::function<void(uint32_t)> Callback_handler;
+    std::function<void(uint32_t)> CallbackHandler;
 };
 
 #endif //GETADDR_SERVER_IOWORKER_H

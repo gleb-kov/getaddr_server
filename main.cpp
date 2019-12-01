@@ -3,17 +3,23 @@
 #include "server.h"
 
 // TODO:
-//  check connection closing in iotask destructor
-//  exceptions
-//  check signals handlers, mltpl servers
-//  const, references, attributes, moves
-//  choose optimal data structures: array, map, unique_ptr
 //  self-editing getaddrinfo task as lambda
-//  codestyle
+//  exceptions
 
-int main() {
+int main(int argc, char *argv[]) {
+    if (argc > 2) {
+        std::cerr << "Usage: ./getaddr-server <port> (default 58239)\n";
+        return 0;
+    }
+
+    int port = 58239;
+    if (argc == 2) {
+        port = atoi(argv[1]);
+    }
+
+
     TIOWorker io_context;
-    TServer server(io_context, htonl(INADDR_ANY), htons(58239));
-    io_context.Exec(1000);
+    TServer server(io_context, htonl(INADDR_ANY), htons(port));
+    io_context.Exec(500);
     return 0;
 }

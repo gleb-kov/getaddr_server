@@ -1,6 +1,6 @@
 #include "server.h"
 
-TServer::TServer(TIOWorker &io_context, uint32_t address, uint16_t port)
+TServer::TServer(TIOWorker &io_context, uint32_t address, uint16_t port) noexcept(false)
         : Address(address), Port(port) {
     int fd = socket(AF_INET, SOCK_STREAM, 0);
 
@@ -25,25 +25,27 @@ TServer::TServer(TIOWorker &io_context, uint32_t address, uint16_t port)
         throw std::runtime_error("ERROR: TServer listen() returned some negative number");
     }
 
-    Task = std::make_unique<TIOTask>(&io_context, EPOLLIN, fd, [this, &io_context, fd](uint32_t events) {
+    std::function<void(uint32_t)> receiver = [this, &io_context, fd](uint32_t events) {
         // assert (events & EPOLLIN)
 
         int s = accept4(fd, nullptr, nullptr, SOCK_NONBLOCK);
         // if (s < 0) return;
 
-        auto tmp = new TClient(io_context, s, this);
-        Connections.insert({tmp, std::unique_ptr<TClient>(tmp)});
-    });
+        auto tmp = new TClient(io_context, s, this); // exception ?
+
+        auto t = Connections.insert({tmp, std::unique_ptr<TClient>(tmp)}); // check insertion correctness
+    };
+    Task = std::make_unique<TIOTask>(&io_context, EPOLLIN, fd, receiver); // exception ?
 }
 
 void TServer::RefuseConnection(TClient *task) {
-    Connections.erase(task);
+    Connections.erase(task); // any exceptions thrown by the Compare object.
 }
 
 TClient::TClient(TIOWorker &io_context, uint32_t s, TServer *server) {
     std::function<void(uint32_t)> echo = [this, s, server](uint32_t events) {
         if ((events & EPOLLERR) || (events & EPOLLRDHUP) || (events & EPOLLHUP)) {
-            server->RefuseConnection(this);
+            server->RefuseConnection(this); // exception ?
             return;
         }
         if (events & EPOLLOUT) {
@@ -51,5 +53,5 @@ TClient::TClient(TIOWorker &io_context, uint32_t s, TServer *server) {
         }
     };
 
-    Task = std::make_unique<TIOTask>(&io_context, CLIENT_EVENTS, s, echo);
+    Task = std::make_unique<TIOTask>(&io_context, CLIENT_EVENTS, s, echo); // exception ?
 }

@@ -1,4 +1,3 @@
-#include <sys/socket.h>
 #include "iojob.h"
 
 namespace {
@@ -9,7 +8,7 @@ namespace {
     }
 }
 
-TIOWorker::TIOWorker() {
+TIOWorker::TIOWorker() noexcept(false) {
     efd = epoll_create1(0);
 
     if (efd < 0) {
@@ -58,26 +57,25 @@ void TIOWorker::Exec(int timeout) {
         }
 
         for (auto it = events.begin(); it != events.begin() + count; it++) {
-            // exceptions ?
-            static_cast<TIOTask *>(it->data.ptr)->Callback(it->events);
+            static_cast<TIOTask *>(it->data.ptr)->Callback(it->events); // exception ?
         }
     }
 }
 
 TIOTask::TIOTask(TIOWorker *context, uint32_t events, int fd, std::function<void(uint32_t)> callback)
-        : Context(context), Events(events), fd(fd), Callback_handler(std::move(callback)) {
+        : Context(context), Events(events), fd(fd), CallbackHandler(std::move(callback)) {
     epoll_event event{Events, this};
-    Context->Add(fd, &event);
+    Context->Add(fd, &event); // exception ?
 }
 
 void TIOTask::Callback(uint32_t events) {
-    Callback_handler(events);
+    CallbackHandler(events); // exception ?
 }
 
 TIOTask::~TIOTask() {
     if (Context) {
         epoll_event event{Events, this};
-        Context->Remove(fd, &event);
+        Context->Remove(fd, &event); // exception ?
     }
     shutdown(fd, SHUT_RDWR);
     close(fd);

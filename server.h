@@ -12,7 +12,7 @@ class TClient;
 
 class TServer {
 public:
-    TServer(TIOWorker &io_context, uint32_t address, uint16_t port);
+    TServer(TIOWorker &io_context, uint32_t address, uint16_t port) noexcept(false);
 
     void RefuseConnection(TClient *task);
 
@@ -31,8 +31,8 @@ private:
     const uint16_t Port;
 
     std::unique_ptr<TIOTask> Task;
-
     std::unordered_map<TClient *, std::unique_ptr<TClient>> Connections;
+
 };
 
 class TClient {
