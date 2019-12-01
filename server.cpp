@@ -25,27 +25,31 @@ TServer::TServer(TIOWorker &io_context, uint32_t address, uint16_t port)
         throw std::runtime_error("ERROR: TServer listen() returned some negative number");
     }
 
-    // TODO:
-    //  remove client lambda
-    //  erase from connections, it'll call destructor of iotask
-    //  ?? split server and client tasks
-    //  check connection closing in iotask destructor
-
     Task = std::make_unique<TIOTask>(&io_context, EPOLLIN, fd, [this, &io_context, fd](uint32_t events) {
-        int s = accept4(fd, nullptr, nullptr, SOCK_NONBLOCK);
-        if (s < 0) return;
+        // assert (events & EPOLLIN)
 
-        auto child = new TIOTask(&io_context,
-                                 (EPOLLIN | EPOLLOUT | EPOLLERR | EPOLLRDHUP | EPOLLHUP),
-                                 s, [s](uint32_t events) {
-                    if ((events & EPOLLERR) || (events & EPOLLRDHUP) || (events & EPOLLHUP)) {
-                        return; // erase from Connections
-                    }
-                    char buf[20] = "hi there\n";
-                    if (events & EPOLLOUT) {
-                        send(s, &buf, sizeof buf, 0);
-                    }
-                });
-        Connections.insert({child, std::unique_ptr<TIOTask>(child)});
+        int s = accept4(fd, nullptr, nullptr, SOCK_NONBLOCK);
+        // if (s < 0) return;
+
+        auto tmp = new TClient(io_context, s, this);
+        Connections.insert({tmp, std::unique_ptr<TClient>(tmp)});
     });
+}
+
+void TServer::RefuseConnection(TClient *task) {
+    Connections.erase(task);
+}
+
+TClient::TClient(TIOWorker &io_context, uint32_t s, TServer *server) {
+    std::function<void(uint32_t)> echo = [this, s, server](uint32_t events) {
+        if ((events & EPOLLERR) || (events & EPOLLRDHUP) || (events & EPOLLHUP)) {
+            server->RefuseConnection(this);
+            return;
+        }
+        if (events & EPOLLOUT) {
+            send(s, &buf, sizeof buf, 0);
+        }
+    };
+
+    Task = std::make_unique<TIOTask>(&io_context, CLIENT_EVENTS, s, echo);
 }

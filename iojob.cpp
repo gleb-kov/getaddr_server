@@ -4,7 +4,7 @@
 namespace {
     volatile sig_atomic_t quitSignalFlag = 0;
 
-    void signalHandler(int signal) {
+    void signalHandler([[maybe_unused]] int signal) {
         quitSignalFlag = 1;
     }
 }
@@ -48,10 +48,10 @@ void TIOWorker::Exec(int timeout) {
 
     std::array<epoll_event, TIOWORKER_EPOLL_MAX> events{};
     while (true) {
+        int count = epoll_wait(efd, events.data(), TIOWORKER_EPOLL_MAX, timeout);
+
         if (::quitSignalFlag == 1)
             return;
-
-        int count = epoll_wait(efd, events.data(), TIOWORKER_EPOLL_MAX, timeout);
 
         if (count < 0) {
             throw std::runtime_error("ERROR: epoll_wait() returned some negative number");
@@ -76,9 +76,7 @@ void TIOTask::Callback(uint32_t events) {
 
 TIOTask::~TIOTask() {
     if (Context) {
-        epoll_event event;
-        event.events = Events;
-        event.data.ptr = this;
+        epoll_event event{Events, this};
         Context->Remove(fd, &event);
     }
     shutdown(fd, SHUT_RDWR);

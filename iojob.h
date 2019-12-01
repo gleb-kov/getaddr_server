@@ -14,7 +14,7 @@ public:
 
     void Add(int fd, epoll_event *task);
 
-    void Edit(int fd, epoll_event *task);
+    [[maybe_unused]] void Edit(int fd, epoll_event *task);
 
     void Remove(int fd, epoll_event *task);
 
@@ -39,7 +39,7 @@ private:
 
 class TIOTask {
 public:
-    explicit TIOTask(TIOWorker *context, uint32_t events, int fd, std::function<void(uint32_t)> callback);
+    TIOTask(TIOWorker *context, uint32_t events, int fd, std::function<void(uint32_t)> callback);
 
     void Callback(uint32_t events);
 

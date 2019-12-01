@@ -8,9 +8,13 @@
 
 #include "iojob.h"
 
+class TClient;
+
 class TServer {
 public:
     TServer(TIOWorker &io_context, uint32_t address, uint16_t port);
+
+    void RefuseConnection(TClient *task);
 
     ~TServer() = default;
 
@@ -28,8 +32,29 @@ private:
 
     std::unique_ptr<TIOTask> Task;
 
-    std::unordered_map<TIOTask *, std::unique_ptr<TIOTask>> Connections;
+    std::unordered_map<TClient *, std::unique_ptr<TClient>> Connections;
 };
 
+class TClient {
+public:
+    TClient(TIOWorker &io_context, uint32_t s, TServer *server);
+
+    ~TClient() = default;
+
+    TClient(TClient const &) = delete;
+
+    TClient(TClient &&) = delete;
+
+    TClient &operator=(TClient const &) = delete;
+
+    TClient &operator=(TClient &&) = delete;
+
+private:
+    static constexpr uint32_t CLIENT_EVENTS =
+            (EPOLLIN | EPOLLOUT | EPOLLERR | EPOLLRDHUP | EPOLLHUP);
+
+    char buf[20] = "hi there\n";
+    std::unique_ptr<TIOTask> Task;
+};
 
 #endif //GETADDR_SERVER_SERVER_H
