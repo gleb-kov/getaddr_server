@@ -1,5 +1,5 @@
-#ifndef GETADDR_SERVER_IOWORKER_H
-#define GETADDR_SERVER_IOWORKER_H
+#ifndef GETADDR_SERVER_IOJOB_H
+#define GETADDR_SERVER_IOJOB_H
 
 #include <array>
 #include <csignal>
@@ -11,13 +11,15 @@
 
 class TIOWorker {
 public:
-    TIOWorker() noexcept(false);
+    TIOWorker();
 
     void Add(int fd, epoll_event *task);
 
     [[maybe_unused]] void Edit(int fd, epoll_event *task);
 
-    void Remove(int fd, epoll_event *task);
+    [[maybe_unused]] void Remove(int fd, epoll_event *task);
+
+    int TryRemove(int fd, epoll_event *task) noexcept;
 
     void Exec(int timeout = -1);
 
@@ -61,4 +63,4 @@ private:
     std::function<void(uint32_t)> CallbackHandler;
 };
 
-#endif //GETADDR_SERVER_IOWORKER_H
+#endif //GETADDR_SERVER_IOJOB_H

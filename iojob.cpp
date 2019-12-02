@@ -8,11 +8,11 @@ namespace {
     }
 }
 
-TIOWorker::TIOWorker() noexcept(false) {
+TIOWorker::TIOWorker() {
     efd = epoll_create1(0);
 
     if (efd < 0) {
-        throw std::runtime_error("ERROR: Epoll creation failed");
+        throw std::runtime_error("ERROR: Failed to create epoll.");
     }
 }
 
@@ -20,7 +20,7 @@ void TIOWorker::Add(int fd, epoll_event *task) {
     int ctl_code = epoll_ctl(efd, EPOLL_CTL_ADD, fd, task);
 
     if (ctl_code < 0) {
-        throw std::runtime_error("ERROR: add event to epoll");
+        throw std::runtime_error("ERROR: Failed to add event.");
     }
 }
 
@@ -28,7 +28,7 @@ void TIOWorker::Edit(int fd, epoll_event *task) {
     int ctl_code = epoll_ctl(efd, EPOLL_CTL_MOD, fd, task);
 
     if (ctl_code < 0) {
-        throw std::runtime_error("ERROR: edit event on epoll");
+        throw std::runtime_error("ERROR: Failed to edit event.");
     }
 }
 
@@ -36,8 +36,13 @@ void TIOWorker::Remove(int fd, epoll_event *task) {
     int ctl_code = epoll_ctl(efd, EPOLL_CTL_DEL, fd, task);
 
     if (ctl_code < 0) {
-        throw std::runtime_error("ERROR: Remove event from epoll");
+        throw std::runtime_error("ERROR: Failed to remove event.");
     }
+}
+
+int TIOWorker::TryRemove(int fd, epoll_event *task) noexcept {
+    int ctl_code = epoll_ctl(efd, EPOLL_CTL_DEL, fd, task);
+    return ctl_code;
 }
 
 void TIOWorker::Exec(int timeout) {
@@ -49,8 +54,9 @@ void TIOWorker::Exec(int timeout) {
     while (true) {
         int count = epoll_wait(efd, events.data(), TIOWORKER_EPOLL_MAX, timeout);
 
-        if (::quitSignalFlag == 1)
+        if (::quitSignalFlag == 1) {
             return;
+        }
 
         if (count < 0) {
             throw std::runtime_error("ERROR: epoll_wait() returned some negative number");
@@ -65,7 +71,7 @@ void TIOWorker::Exec(int timeout) {
 TIOTask::TIOTask(TIOWorker *context, uint32_t events, int fd, std::function<void(uint32_t)> callback)
         : Context(context), Events(events), fd(fd), CallbackHandler(std::move(callback)) {
     epoll_event event{Events, this};
-    Context->Add(fd, &event); // exception ?
+    Context->Add(fd, &event);
 }
 
 void TIOTask::Callback(uint32_t events) {
@@ -75,7 +81,7 @@ void TIOTask::Callback(uint32_t events) {
 TIOTask::~TIOTask() {
     if (Context) {
         epoll_event event{Events, this};
-        Context->Remove(fd, &event); // exception ?
+        Context->TryRemove(fd, &event);
     }
     shutdown(fd, SHUT_RDWR);
     close(fd);
