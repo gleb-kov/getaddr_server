@@ -59,7 +59,7 @@ void TIOWorker::Exec(int timeout) {
         }
 
         if (count < 0) {
-            throw std::runtime_error("ERROR: epoll_wait() returned some negative number");
+            throw std::runtime_error("ERROR: epoll_wait() returned some negative number.");
         }
 
         for (auto it = events.begin(); it != events.begin() + count; it++) {

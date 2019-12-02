@@ -19,10 +19,10 @@ int main(int argc, char *argv[]) {
         TIOWorker io_context;
         TServer server(io_context, htonl(INADDR_ANY), htons(port));
         io_context.Exec(500);
-    } catch (std::runtime_error const &e) {
+    } catch (std::exception const &e) {
         std::cerr << e.what() << std::endl;
     } catch (...) {
-        std::cerr << "Unknown exception";
+        std::cerr << "Unknown exception." << std::endl;
     }
     return 0;
 }

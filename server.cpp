@@ -30,8 +30,17 @@ TServer::TServer(TIOWorker &io_context, uint32_t address, uint16_t port)
             return;
         }
 
-        auto tmp = new TClient(io_context, s, this); // exception ?
-        auto t = Connections.insert({tmp, std::unique_ptr<TClient>(tmp)}); // check insertion correctness
+        TClient *clientPtr = nullptr;
+        try {
+            clientPtr = new TClient(io_context, s, this);
+            auto insertionResult = Connections.insert({clientPtr, std::unique_ptr<TClient>(clientPtr)});
+            if (!insertionResult.second) {
+                throw std::runtime_error("Cannot insert connection in storage.");
+            }
+        } catch (...) {
+            send(s, &ERRBUF, sizeof ERRBUF, 0);
+            delete clientPtr;
+        }
     };
     Task = std::make_unique<TIOTask>(&io_context, EPOLLIN, fd, receiver);
 }
