@@ -44,7 +44,7 @@ class TIOTask {
 public:
     TIOTask(TIOWorker *context, uint32_t events, int fd, std::function<void(uint32_t)> callback);
 
-    void Callback(uint32_t events);
+    void Callback(uint32_t events) noexcept;
 
     ~TIOTask();
 

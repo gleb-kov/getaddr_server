@@ -29,7 +29,7 @@ public:
 private:
     const uint32_t Address;
     const uint16_t Port;
-    const char ERRBUF[23] = "Error on server side.\n";
+
     std::unique_ptr<TIOTask> Task;
     std::unordered_map<TClient *, std::unique_ptr<TClient>> Connections;
 };
@@ -49,8 +49,7 @@ public:
     TClient &operator=(TClient &&) = delete;
 
 private:
-    static constexpr uint32_t CLIENT_EVENTS =
-            (EPOLLIN | EPOLLOUT | EPOLLERR | EPOLLRDHUP | EPOLLHUP);
+    static constexpr uint32_t CLOSE_EVENTS = (EPOLLERR | EPOLLRDHUP | EPOLLHUP);
 
     char buf[20] = "hi there\n";
     std::unique_ptr<TIOTask> Task;

@@ -63,7 +63,7 @@ void TIOWorker::Exec(int timeout) {
         }
 
         for (auto it = events.begin(); it != events.begin() + count; it++) {
-            static_cast<TIOTask *>(it->data.ptr)->Callback(it->events); // exception ?
+            static_cast<TIOTask *>(it->data.ptr)->Callback(it->events);
         }
     }
 }
@@ -74,8 +74,8 @@ TIOTask::TIOTask(TIOWorker *context, uint32_t events, int fd, std::function<void
     Context->Add(fd, &event);
 }
 
-void TIOTask::Callback(uint32_t events) {
-    CallbackHandler(events); // exception ?
+void TIOTask::Callback(uint32_t events) noexcept {
+    CallbackHandler(events);
 }
 
 TIOTask::~TIOTask() {

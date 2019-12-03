@@ -22,9 +22,7 @@ TServer::TServer(TIOWorker &io_context, uint32_t address, uint16_t port)
         throw std::runtime_error("ERROR: TServer listen() returned some negative number.");
     }
 
-    std::function<void(uint32_t)> receiver = [this, &io_context, fd](uint32_t events) {
-        // assert (events & EPOLLIN)
-
+    std::function<void(uint32_t)> receiver = [this, &io_context, fd](uint32_t events) noexcept(true) {
         int s = accept4(fd, nullptr, nullptr, SOCK_NONBLOCK);
         if (s < 0) {
             return;
@@ -34,11 +32,7 @@ TServer::TServer(TIOWorker &io_context, uint32_t address, uint16_t port)
         try {
             clientPtr = new TClient(io_context, s, this);
             auto insertionResult = Connections.insert({clientPtr, std::unique_ptr<TClient>(clientPtr)});
-            if (!insertionResult.second) {
-                throw std::runtime_error("Cannot insert connection in storage.");
-            }
         } catch (...) {
-            send(s, &ERRBUF, sizeof ERRBUF, 0);
             delete clientPtr;
         }
     };
@@ -50,14 +44,21 @@ void TServer::RefuseConnection(TClient *task) {
 }
 
 TClient::TClient(TIOWorker &io_context, uint32_t s, TServer *server) {
-    std::function<void(uint32_t)> echo = [this, s, server](uint32_t events) {
+    std::function<void(uint32_t)> echo = [this, s, server, &io_context](uint32_t events) noexcept(true) {
         if ((events & EPOLLERR) || (events & EPOLLRDHUP) || (events & EPOLLHUP)) {
             server->RefuseConnection(this);
             return;
         }
+        /*if (events & EPOLLIN) {
+            // epoll_event e((CLOSE_EVENTS | EPOLLOUT),);
+            // io_context.Edit(s,);
+            return;
+        }*/
         if (events & EPOLLOUT) {
             send(s, &buf, sizeof buf, 0);
+            // epoll_event e((CLOSE_EVENTS | EPOLLIN),);
+            // io_context.Edit(s,);
         }
     };
-    Task = std::make_unique<TIOTask>(&io_context, CLIENT_EVENTS, s, echo);
+    Task = std::make_unique<TIOTask>(&io_context, (CLOSE_EVENTS | EPOLLIN | EPOLLOUT), s, echo);
 }
