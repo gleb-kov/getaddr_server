@@ -42,7 +42,7 @@ private:
 
 class TIOTask {
 public:
-    TIOTask(TIOWorker *context, uint32_t events, int fd, std::function<void(uint32_t)> callback);
+    TIOTask(TIOWorker *context, uint32_t events, int fd, std::function<void(uint32_t, TIOTask *)> callback);
 
     void Callback(uint32_t events) noexcept;
 
@@ -60,7 +60,7 @@ private:
     TIOWorker *Context;
     uint32_t Events;
     int fd;
-    std::function<void(uint32_t)> CallbackHandler;
+    std::function<void(uint32_t, TIOTask *)> CallbackHandler;
 };
 
 #endif //GETADDR_SERVER_IOJOB_H

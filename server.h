@@ -51,7 +51,7 @@ public:
 private:
     static constexpr uint32_t CLOSE_EVENTS = (EPOLLERR | EPOLLRDHUP | EPOLLHUP);
 
-    char buf[20] = "hi there\n";
+    char buf[20];
     std::unique_ptr<TIOTask> Task;
 };
 

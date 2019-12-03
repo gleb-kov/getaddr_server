@@ -68,14 +68,17 @@ void TIOWorker::Exec(int timeout) {
     }
 }
 
-TIOTask::TIOTask(TIOWorker *context, uint32_t events, int fd, std::function<void(uint32_t)> callback)
+TIOTask::TIOTask(TIOWorker *context,
+                 uint32_t events,
+                 int fd,
+                 std::function<void(uint32_t, TIOTask *)> callback)
         : Context(context), Events(events), fd(fd), CallbackHandler(std::move(callback)) {
     epoll_event event{Events, this};
     Context->Add(fd, &event);
 }
 
 void TIOTask::Callback(uint32_t events) noexcept {
-    CallbackHandler(events);
+    CallbackHandler(events, this);
 }
 
 TIOTask::~TIOTask() {
