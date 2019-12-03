@@ -24,14 +24,14 @@ TServer::TServer(TIOWorker &io_context, uint32_t address, uint16_t port)
 
     std::function<void(uint32_t, TIOTask *)> receiver =
             [this, &io_context, fd](uint32_t events, TIOTask *self) noexcept(true) {
-                int s = accept4(fd, nullptr, nullptr, SOCK_NONBLOCK);
-                if (s < 0) {
+                int sfd = accept4(fd, nullptr, nullptr, SOCK_NONBLOCK);
+                if (sfd < 0) {
                     return;
                 }
 
                 TClient *clientPtr = nullptr;
                 try {
-                    clientPtr = new TClient(io_context, s, this);
+                    clientPtr = new TClient(io_context, sfd, this);
                     Connections.insert({clientPtr, std::unique_ptr<TClient>(clientPtr)});
                 } catch (...) {
                     delete clientPtr;
@@ -44,24 +44,24 @@ void TServer::RefuseConnection(TClient *task) {
     Connections.erase(task);
 }
 
-TClient::TClient(TIOWorker &io_context, uint32_t s, TServer *server) {
+TClient::TClient(TIOWorker &io_context, uint32_t fd, TServer *server) {
     std::function<void(uint32_t, TIOTask *)> echo =
-            [this, s, server, &io_context](uint32_t events, TIOTask *self) noexcept(true) {
+            [this, fd, server, &io_context](uint32_t events, TIOTask *self) noexcept(true) {
                 if ((events & EPOLLERR) || (events & EPOLLRDHUP) || (events & EPOLLHUP)) {
                     server->RefuseConnection(this);
                     return;
                 }
                 if (events & EPOLLIN) {
-                    recv(s, &buf, sizeof buf, 0);
+                    recv(fd, &buf, sizeof buf, 0);
                     epoll_event e{(CLOSE_EVENTS | EPOLLOUT), self};
-                    io_context.Edit(s, &e);
+                    io_context.Edit(fd, &e);
                     return;
                 }
                 if (events & EPOLLOUT) {
-                    send(s, &buf, sizeof buf, 0);
+                    send(fd, &buf, sizeof buf, 0);
                     epoll_event e{(CLOSE_EVENTS | EPOLLIN), self};
-                    io_context.Edit(s, &e);
+                    io_context.Edit(fd, &e);
                 }
             };
-    Task = std::make_unique<TIOTask>(&io_context, (CLOSE_EVENTS | EPOLLIN), s, echo);
+    Task = std::make_unique<TIOTask>(&io_context, (CLOSE_EVENTS | EPOLLIN), fd, echo);
 }

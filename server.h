@@ -14,7 +14,7 @@ class TServer {
 public:
     TServer(TIOWorker &io_context, uint32_t address, uint16_t port);
 
-    void RefuseConnection(TClient *task);
+    void RefuseConnection(TClient *);
 
     ~TServer() = default;
 
@@ -36,7 +36,7 @@ private:
 
 class TClient {
 public:
-    TClient(TIOWorker &io_context, uint32_t s, TServer *server);
+    TClient(TIOWorker &io_context, uint32_t fd, TServer *);
 
     ~TClient() = default;
 
@@ -51,7 +51,7 @@ public:
 private:
     static constexpr uint32_t CLOSE_EVENTS = (EPOLLERR | EPOLLRDHUP | EPOLLHUP);
 
-    char buf[20];
+    char buf[100];
     std::unique_ptr<TIOTask> Task;
 };
 

@@ -72,7 +72,11 @@ TIOTask::TIOTask(TIOWorker *context,
                  uint32_t events,
                  int fd,
                  std::function<void(uint32_t, TIOTask *)> callback)
-        : Context(context), Events(events), fd(fd), CallbackHandler(std::move(callback)) {
+        : Context(context)
+        , Events(events)
+        , fd(fd)
+        , CallbackHandler(std::move(callback))
+{
     epoll_event event{Events, this};
     Context->Add(fd, &event);
 }

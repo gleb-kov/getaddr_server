@@ -13,13 +13,13 @@ class TIOWorker {
 public:
     TIOWorker();
 
-    void Add(int fd, epoll_event *task);
+    void Add(int fd, epoll_event *);
 
-    [[maybe_unused]] void Edit(int fd, epoll_event *task);
+    [[maybe_unused]] void Edit(int fd, epoll_event *);
 
-    [[maybe_unused]] void Remove(int fd, epoll_event *task);
+    [[maybe_unused]] void Remove(int fd, epoll_event *);
 
-    int TryRemove(int fd, epoll_event *task) noexcept;
+    int TryRemove(int fd, epoll_event *) noexcept;
 
     void Exec(int timeout = -1);
 
