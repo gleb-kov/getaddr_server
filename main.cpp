@@ -1,6 +1,7 @@
 #include <iostream>
 
 #include "server.h"
+#include "gai_task.h"
 
 int main(int argc, char *argv[]) {
     if (argc > 2) {
@@ -19,5 +20,11 @@ int main(int argc, char *argv[]) {
     } catch (...) {
         std::cerr << "Unknown exception." << std::endl;
     }
+
+    /*
+     TGetaddrinfoTask solver;
+     int err1 = solver.ask("example.com");
+     int err2 = solver.ask("vk.com");
+     */
     return 0;
 }

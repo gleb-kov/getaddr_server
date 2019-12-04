@@ -9,4 +9,5 @@ add_executable(getaddr_server
         iojob.h
         server.cpp
         server.h
-        )
+        gai_task.cpp
+        gai_task.h)
