@@ -12,13 +12,20 @@ TServer::TServer(TIOWorker &io_context, uint32_t address, uint16_t port)
     sain.sin_addr.s_addr = address;
     sain.sin_port = port;
 
-    int bind_code = bind(fd, reinterpret_cast<sockaddr const *>(&sain), sizeof sain);
-    if (bind_code < 0) {
+    /* some magic to fix bind() EADDRINUSE on free port */
+    int optVal = 1;
+    int sockOptCode = setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &optVal, sizeof optVal);
+    if (sockOptCode < 0) {
+        throw std::runtime_error(std::string("TServer() setsockopt() call. ") + std::strerror(errno));
+    }
+
+    int bindCode = bind(fd, reinterpret_cast<sockaddr const *>(&sain), sizeof sain);
+    if (bindCode < 0) {
         throw std::runtime_error(std::string("TServer() bind() call. ") + std::strerror(errno));
     }
 
-    int listen_code = listen(fd, SOMAXCONN);
-    if (listen_code < 0) {
+    int listenCode = listen(fd, SOMAXCONN);
+    if (listenCode < 0) {
         throw std::runtime_error(std::string("TServer() listen() call. ") + std::strerror(errno));
     }
 
