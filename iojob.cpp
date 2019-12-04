@@ -12,7 +12,7 @@ TIOWorker::TIOWorker() {
     efd = epoll_create1(0);
 
     if (efd < 0) {
-        throw std::runtime_error(std::string("TIOWorker() epoll_create() call.") + std::strerror(errno));
+        throw std::runtime_error(std::string("TIOWorker() epoll_create() call. ") + std::strerror(errno));
     }
 }
 
@@ -20,7 +20,7 @@ void TIOWorker::Add(int fd, epoll_event *task) {
     int ctlCode = epoll_ctl(efd, EPOLL_CTL_ADD, fd, task);
 
     if (ctlCode < 0) {
-        throw std::runtime_error(std::string("TIOWorker()::Add() epoll_ctl() call.") + std::strerror(errno));
+        throw std::runtime_error(std::string("TIOWorker()::Add() epoll_ctl() call. ") + std::strerror(errno));
     }
 }
 
@@ -28,7 +28,7 @@ void TIOWorker::Edit(int fd, epoll_event *task) {
     int ctlCode = epoll_ctl(efd, EPOLL_CTL_MOD, fd, task);
 
     if (ctlCode < 0) {
-        throw std::runtime_error(std::string("TIOWorker()::Edit() epoll_ctl() call.") + std::strerror(errno));
+        throw std::runtime_error(std::string("TIOWorker()::Edit() epoll_ctl() call. ") + std::strerror(errno));
     }
 }
 
@@ -59,7 +59,7 @@ void TIOWorker::Exec(int timeout) {
         }
 
         if (count < 0) {
-            throw std::runtime_error(std::string("TIOWorker::Exec() epoll_wait() call.") + std::strerror(errno));
+            throw std::runtime_error(std::string("TIOWorker::Exec() epoll_wait() call. ") + std::strerror(errno));
         }
 
         for (auto it = events.begin(); it != events.begin() + count; it++) {
