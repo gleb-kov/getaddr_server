@@ -22,9 +22,9 @@ int main(int argc, char *argv[]) {
     }
 
     /*
-     TGetaddrinfoTask solver;
-     int err1 = solver.ask("example.com");
-     int err2 = solver.ask("vk.com");
-     */
+    TGetaddrinfoTask solver;
+    int err1 = solver.Ask("example.com");
+    int err2 = solver.Ask("vk.com");
+    */
     return 0;
 }
