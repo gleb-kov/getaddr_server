@@ -16,13 +16,12 @@ int main(int argc, char *argv[]) {
         TServer server(io_context, htonl(INADDR_ANY), htons(port));
         io_context.Exec(500);
     } catch (std::exception const &e) {
-        std::cerr << e.what() << std::endl;
+        std::cerr << "EXCEPTION: " << e.what() << std::endl;
     } catch (...) {
-        std::cerr << "Unknown exception." << std::endl;
+        std::cerr << "UNKNOWN EXCEPTION." << std::endl;
     }
 
-    /*
-    TGetaddrinfoTask solver;
+    /*TGetaddrinfoTask solver;
     int err1 = solver.Ask("example.com");
     int err2 = solver.Ask("vk.com");
     */

@@ -2,7 +2,9 @@
 #define GETADDR_SERVER_IOJOB_H
 
 #include <array>
+#include <cerrno>
 #include <csignal>
+#include <cstring>
 #include <functional>
 #include <memory>
 #include <sys/epoll.h>

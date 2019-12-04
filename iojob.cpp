@@ -12,37 +12,37 @@ TIOWorker::TIOWorker() {
     efd = epoll_create1(0);
 
     if (efd < 0) {
-        throw std::runtime_error("ERROR: Failed to create epoll.");
+        throw std::runtime_error("TIOWorker() epoll_create() call.");
     }
 }
 
 void TIOWorker::Add(int fd, epoll_event *task) {
-    int ctl_code = epoll_ctl(efd, EPOLL_CTL_ADD, fd, task);
+    int ctlCode = epoll_ctl(efd, EPOLL_CTL_ADD, fd, task);
 
-    if (ctl_code < 0) {
-        throw std::runtime_error("ERROR: Failed to add event.");
+    if (ctlCode < 0) {
+        throw std::runtime_error("TIOWorker()::Add() epoll_ctl() call.");
     }
 }
 
 void TIOWorker::Edit(int fd, epoll_event *task) {
-    int ctl_code = epoll_ctl(efd, EPOLL_CTL_MOD, fd, task);
+    int ctlCode = epoll_ctl(efd, EPOLL_CTL_MOD, fd, task);
 
-    if (ctl_code < 0) {
-        throw std::runtime_error("ERROR: Failed to edit event.");
+    if (ctlCode < 0) {
+        throw std::runtime_error("TIOWorker()::Edit() epoll_ctl() call.");
     }
 }
 
 void TIOWorker::Remove(int fd, epoll_event *task) {
-    int ctl_code = epoll_ctl(efd, EPOLL_CTL_DEL, fd, task);
+    int ctlCode = epoll_ctl(efd, EPOLL_CTL_DEL, fd, task);
 
-    if (ctl_code < 0) {
-        throw std::runtime_error("ERROR: Failed to remove event.");
+    if (ctlCode < 0) {
+        throw std::runtime_error("TIOWorker()::Remove() epoll_ctl() call.");
     }
 }
 
 int TIOWorker::TryRemove(int fd, epoll_event *task) noexcept {
-    int ctl_code = epoll_ctl(efd, EPOLL_CTL_DEL, fd, task);
-    return ctl_code;
+    int ctlCode = epoll_ctl(efd, EPOLL_CTL_DEL, fd, task);
+    return ctlCode;
 }
 
 void TIOWorker::Exec(int timeout) {
@@ -59,7 +59,7 @@ void TIOWorker::Exec(int timeout) {
         }
 
         if (count < 0) {
-            throw std::runtime_error("ERROR: epoll_wait() returned some negative number.");
+            throw std::runtime_error("TIOWorker::Exec() epoll_wait() call.");
         }
 
         for (auto it = events.begin(); it != events.begin() + count; it++) {
@@ -72,11 +72,7 @@ TIOTask::TIOTask(TIOWorker *context,
                  uint32_t events,
                  int fd,
                  std::function<void(uint32_t, TIOTask *)> callback)
-        : Context(context)
-        , Events(events)
-        , fd(fd)
-        , CallbackHandler(std::move(callback))
-{
+        : Context(context), Events(events), fd(fd), CallbackHandler(std::move(callback)) {
     epoll_event event{Events, this};
     Context->Add(fd, &event);
 }

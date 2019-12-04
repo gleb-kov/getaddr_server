@@ -25,7 +25,6 @@ private:
     addrinfo Hints;
     addrinfo *Result;
     addrinfo *Node;
-    int ErrorCode;
     char addrstr[100];
     void *ptr;
 };

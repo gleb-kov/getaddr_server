@@ -4,7 +4,7 @@ TServer::TServer(TIOWorker &io_context, uint32_t address, uint16_t port)
         : Address(address), Port(port) {
     int fd = socket(AF_INET, SOCK_STREAM, 0);
     if (fd < 0) {
-        throw std::runtime_error("ERROR: TServer socket() returned some negative number.");
+        throw std::runtime_error("TServer() socket() call.");
     }
 
     sockaddr_in sain;
@@ -14,12 +14,12 @@ TServer::TServer(TIOWorker &io_context, uint32_t address, uint16_t port)
 
     int bind_code = bind(fd, reinterpret_cast<sockaddr const *>(&sain), sizeof sain);
     if (bind_code < 0) {
-        throw std::runtime_error("ERROR: TServer bind() returned some negative number.");
+        throw std::runtime_error("TServer() bind() call.");
     }
 
     int listen_code = listen(fd, SOMAXCONN);
     if (listen_code < 0) {
-        throw std::runtime_error("ERROR: TServer listen() returned some negative number.");
+        throw std::runtime_error("TServer() listen() call.");
     }
 
     std::function<void(uint32_t, TIOTask *)> receiver =

@@ -1,8 +1,12 @@
 #ifndef GETADDR_SERVER_SERVER_H
 #define GETADDR_SERVER_SERVER_H
 
+#include <cerrno>
+#include <cstring>
+#include <functional>
 #include <memory>
 #include <netinet/in.h>
+#include <sys/epoll.h>
 #include <sys/socket.h>
 #include <unordered_map>
 
