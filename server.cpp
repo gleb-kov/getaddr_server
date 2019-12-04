@@ -4,7 +4,7 @@ TServer::TServer(TIOWorker &io_context, uint32_t address, uint16_t port)
         : Address(address), Port(port) {
     int fd = socket(AF_INET, SOCK_STREAM, 0);
     if (fd < 0) {
-        throw std::runtime_error("TServer() socket() call.");
+        throw std::runtime_error(std::string("TServer() socket() call. ") + std::strerror(errno));
     }
 
     sockaddr_in sain;
@@ -14,12 +14,12 @@ TServer::TServer(TIOWorker &io_context, uint32_t address, uint16_t port)
 
     int bind_code = bind(fd, reinterpret_cast<sockaddr const *>(&sain), sizeof sain);
     if (bind_code < 0) {
-        throw std::runtime_error("TServer() bind() call.");
+        throw std::runtime_error(std::string("TServer() bind() call. ") + std::strerror(errno));
     }
 
     int listen_code = listen(fd, SOMAXCONN);
     if (listen_code < 0) {
-        throw std::runtime_error("TServer() listen() call.");
+        throw std::runtime_error(std::string("TServer() listen() call. ") + std::strerror(errno));
     }
 
     std::function<void(uint32_t, TIOTask *)> receiver =

@@ -12,7 +12,7 @@ TIOWorker::TIOWorker() {
     efd = epoll_create1(0);
 
     if (efd < 0) {
-        throw std::runtime_error("TIOWorker() epoll_create() call.");
+        throw std::runtime_error(std::string("TIOWorker() epoll_create() call.") + std::strerror(errno));
     }
 }
 
@@ -20,7 +20,7 @@ void TIOWorker::Add(int fd, epoll_event *task) {
     int ctlCode = epoll_ctl(efd, EPOLL_CTL_ADD, fd, task);
 
     if (ctlCode < 0) {
-        throw std::runtime_error("TIOWorker()::Add() epoll_ctl() call.");
+        throw std::runtime_error(std::string("TIOWorker()::Add() epoll_ctl() call.") + std::strerror(errno));
     }
 }
 
@@ -28,7 +28,7 @@ void TIOWorker::Edit(int fd, epoll_event *task) {
     int ctlCode = epoll_ctl(efd, EPOLL_CTL_MOD, fd, task);
 
     if (ctlCode < 0) {
-        throw std::runtime_error("TIOWorker()::Edit() epoll_ctl() call.");
+        throw std::runtime_error(std::string("TIOWorker()::Edit() epoll_ctl() call.") + std::strerror(errno));
     }
 }
 
@@ -36,7 +36,7 @@ void TIOWorker::Remove(int fd, epoll_event *task) {
     int ctlCode = epoll_ctl(efd, EPOLL_CTL_DEL, fd, task);
 
     if (ctlCode < 0) {
-        throw std::runtime_error("TIOWorker()::Remove() epoll_ctl() call.");
+        throw std::runtime_error(std::string("TIOWorker()::Remove() epoll_ctl() call.") + std::strerror(errno));
     }
 }
 
@@ -59,7 +59,7 @@ void TIOWorker::Exec(int timeout) {
         }
 
         if (count < 0) {
-            throw std::runtime_error("TIOWorker::Exec() epoll_wait() call.");
+            throw std::runtime_error(std::string("TIOWorker::Exec() epoll_wait() call.") + std::strerror(errno));
         }
 
         for (auto it = events.begin(); it != events.begin() + count; it++) {
@@ -72,7 +72,11 @@ TIOTask::TIOTask(TIOWorker *context,
                  uint32_t events,
                  int fd,
                  std::function<void(uint32_t, TIOTask *)> callback)
-        : Context(context), Events(events), fd(fd), CallbackHandler(std::move(callback)) {
+        : Context(context)
+        , Events(events)
+        , fd(fd)
+        , CallbackHandler(std::move(callback))
+{
     epoll_event event{Events, this};
     Context->Add(fd, &event);
 }

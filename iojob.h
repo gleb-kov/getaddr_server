@@ -6,7 +6,6 @@
 #include <csignal>
 #include <cstring>
 #include <functional>
-#include <memory>
 #include <sys/epoll.h>
 #include <sys/socket.h>
 #include <unistd.h>
