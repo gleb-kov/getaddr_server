@@ -26,7 +26,6 @@ private:
     addrinfo *Result;
     addrinfo *Node;
     char addrstr[100];
-    void *ptr;
 };
 
 #endif //GETADDR_SERVER_GETADDRINFO_TASK_H

@@ -1,7 +1,7 @@
 #include "gai_task.h"
 
 TGetaddrinfoTask::TGetaddrinfoTask()
-        : Hints{0, AF_UNSPEC, SOCK_STREAM}, Result(nullptr), Node(nullptr), ptr(nullptr) {}
+        : Hints{0, AF_UNSPEC, SOCK_STREAM}, Result(nullptr), Node(nullptr) {}
 
 int TGetaddrinfoTask::Ask(const char *host) {
     int errorCode = getaddrinfo(host, nullptr, &Hints, &Result);
@@ -12,6 +12,7 @@ int TGetaddrinfoTask::Ask(const char *host) {
         return errorCode;
     }
 
+    void * ptr = nullptr;
     for (Node = Result; Node; Node = Node->ai_next) {
         if (Node->ai_family == AF_INET) {
             ptr = &(reinterpret_cast<sockaddr_in *>(Node->ai_addr)->sin_addr);
