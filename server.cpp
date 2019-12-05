@@ -31,6 +31,10 @@ TServer::TServer(TIOWorker &io_context, uint32_t address, uint16_t port)
 
     std::function<void(uint32_t, TIOTask *)> receiver =
             [this, &io_context, fd](uint32_t events, TIOTask *self) noexcept(true) {
+                if (events != EPOLLIN) {
+                    return;
+                }
+
                 int sfd = accept4(fd, nullptr, nullptr, SOCK_NONBLOCK);
                 if (sfd < 0) {
                     return;
@@ -59,13 +63,13 @@ TClient::TClient(TIOWorker &io_context, uint32_t fd, TServer *server) {
                     return;
                 }
                 if (events & EPOLLIN) {
-                    recv(fd, &buf, sizeof buf, 0);
+                    int code = recv(fd, &buf, sizeof buf, 0);
                     epoll_event e{(CLOSE_EVENTS | EPOLLOUT), self};
                     io_context.Edit(fd, &e);
                     return;
                 }
                 if (events & EPOLLOUT) {
-                    send(fd, &buf, sizeof buf, 0);
+                    int code = send(fd, &buf, sizeof buf, 0);
                     epoll_event e{(CLOSE_EVENTS | EPOLLIN), self};
                     io_context.Edit(fd, &e);
                 }

@@ -14,9 +14,9 @@ int TGetaddrinfoTask::Ask(const char *host) {
 
     for (Node = Result; Node; Node = Node->ai_next) {
         if (Node->ai_family == AF_INET) {
-            ptr = &((sockaddr_in *) Node->ai_addr)->sin_addr;
+            ptr = &(reinterpret_cast<sockaddr_in *>(Node->ai_addr)->sin_addr);
         } else if (Node->ai_family == AF_INET6) {
-            ptr = &((sockaddr_in6 *) Node->ai_addr)->sin6_addr;
+            ptr = &(reinterpret_cast<sockaddr_in6 *>(Node->ai_addr)->sin6_addr);
         } else {
             continue;
         }
