@@ -57,7 +57,7 @@ void TServer::RefuseConnection(TClient *task) {
 
 TClient::TClient(TIOWorker &io_context, uint32_t fd, TServer *server) : Server(server) {
     std::function<void(uint32_t, TIOTask *)> echo =
-            [this, fd, server, &io_context](uint32_t events, TIOTask *self) noexcept(true) {
+            [this, fd, &io_context](uint32_t events, TIOTask *self) noexcept(true) {
                 if ((events & EPOLLERR) || (events & EPOLLRDHUP) || (events & EPOLLHUP)) {
                     Finish();
                     return;
