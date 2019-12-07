@@ -55,24 +55,36 @@ void TServer::RefuseConnection(TClient *task) {
     Connections.erase(task);
 }
 
-TClient::TClient(TIOWorker &io_context, uint32_t fd, TServer *server) {
+TClient::TClient(TIOWorker &io_context, uint32_t fd, TServer *server) : Server(server) {
     std::function<void(uint32_t, TIOTask *)> echo =
             [this, fd, server, &io_context](uint32_t events, TIOTask *self) noexcept(true) {
                 if ((events & EPOLLERR) || (events & EPOLLRDHUP) || (events & EPOLLHUP)) {
-                    server->RefuseConnection(this);
+                    Finish();
                     return;
                 }
                 if (events & EPOLLIN) {
                     int code = recv(fd, &buf, sizeof buf, 0);
-                    epoll_event e{(CLOSE_EVENTS | EPOLLOUT), self};
-                    io_context.Edit(fd, &e);
+                    if (code < 0) {
+                        Finish();
+                    } else {
+                        epoll_event e{(CLOSE_EVENTS | EPOLLOUT), self};
+                        io_context.Edit(fd, &e);
+                    }
                     return;
                 }
                 if (events & EPOLLOUT) {
                     int code = send(fd, &buf, sizeof buf, 0);
-                    epoll_event e{(CLOSE_EVENTS | EPOLLIN), self};
-                    io_context.Edit(fd, &e);
+                    if (code < 0) {
+                        Finish();
+                    } else {
+                        epoll_event e{(CLOSE_EVENTS | EPOLLIN), self};
+                        io_context.Edit(fd, &e);
+                    }
                 }
             };
     Task = std::make_unique<TIOTask>(&io_context, (CLOSE_EVENTS | EPOLLIN), fd, echo);
+}
+
+void TClient::Finish() {
+    Server->RefuseConnection(this);
 }

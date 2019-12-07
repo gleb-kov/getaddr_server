@@ -2,6 +2,7 @@
 #define GETADDR_SERVER_SERVER_H
 
 #include <cerrno>
+#include <chrono>
 #include <cstring>
 #include <functional>
 #include <memory>
@@ -53,9 +54,15 @@ public:
     TClient &operator=(TClient &&) = delete;
 
 private:
+    void Finish();
+
+private:
     static constexpr uint32_t CLOSE_EVENTS = (EPOLLERR | EPOLLRDHUP | EPOLLHUP);
 
+    std::chrono::steady_clock::time_point LastAction;
+
     char buf[100];
+    TServer * Server;
     std::unique_ptr<TIOTask> Task;
 };
 

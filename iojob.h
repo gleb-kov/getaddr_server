@@ -3,9 +3,11 @@
 
 #include <array>
 #include <cerrno>
+#include <chrono>
 #include <csignal>
 #include <cstring>
 #include <functional>
+#include <queue>
 #include <sys/epoll.h>
 #include <sys/socket.h>
 #include <unistd.h>
@@ -39,6 +41,7 @@ public:
 
 private:
     int efd;
+    std::priority_queue<std::chrono::steady_clock::time_point> Actions;
 };
 
 class TIOTask {
