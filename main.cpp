@@ -24,6 +24,6 @@ int main(int argc, char *argv[]) {
     /*TGetaddrinfoTask solver;
     int err1 = solver.Ask("example.com");
     int err2 = solver.Ask("vk.com");
-    */
+    int err3 = solver.Ask("google.com");*/
     return 0;
 }

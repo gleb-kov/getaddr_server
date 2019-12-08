@@ -1,10 +1,10 @@
 #include "gai_task.h"
 
 TGetaddrinfoTask::TGetaddrinfoTask()
-        : Hints{0, AF_UNSPEC, SOCK_STREAM}, Result(nullptr), Node(nullptr) {}
+        : Hints{0, AF_UNSPEC, SOCK_STREAM}, Info(nullptr), Node(nullptr) {}
 
 int TGetaddrinfoTask::Ask(const char *host) {
-    int errorCode = getaddrinfo(host, nullptr, &Hints, &Result);
+    int errorCode = getaddrinfo(host, nullptr, &Hints, &Info);
 
     std::cerr << "Host: " << host << std::endl;
     if (errorCode != 0) {
@@ -12,8 +12,8 @@ int TGetaddrinfoTask::Ask(const char *host) {
         return errorCode;
     }
 
-    void * ptr = nullptr;
-    for (Node = Result; Node; Node = Node->ai_next) {
+    void *ptr = nullptr;
+    for (Node = Info; Node; Node = Node->ai_next) {
         if (Node->ai_family == AF_INET) {
             ptr = &(reinterpret_cast<sockaddr_in *>(Node->ai_addr)->sin_addr);
         } else if (Node->ai_family == AF_INET6) {
@@ -22,13 +22,9 @@ int TGetaddrinfoTask::Ask(const char *host) {
             continue;
         }
 
-        inet_ntop(Node->ai_family, ptr, addrstr, sizeof addrstr);
-        std::cerr << "IPv"
-                  << (Node->ai_family == AF_INET6 ? 6 : 4)
-                  << ": "
-                  << addrstr
-                  << std::endl;
+        inet_ntop(Node->ai_family, ptr, addrstr, IP_NODE_MAX_SIZE);
+        std::cerr << addrstr << std::endl;
     }
-    freeaddrinfo(Result);
+    freeaddrinfo(Info);
     return 0;
 }

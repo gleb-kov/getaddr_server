@@ -63,17 +63,20 @@ TClient::TClient(TIOWorker &io_context, uint32_t fd, TServer *server) : Server(s
                     return;
                 }
                 if (events & EPOLLIN) {
-                    int code = recv(fd, &buf, sizeof buf, 0);
+                    int code = recv(fd, &Buffer, DOMAIN_MAX_LENGTH, 0);
                     if (code < 0) {
                         Finish();
                     } else {
+                        Queries.push({Buffer, code});
                         epoll_event e{(CLOSE_EVENTS | EPOLLOUT), self};
                         io_context.Edit(fd, &e);
                     }
                     return;
                 }
                 if (events & EPOLLOUT) {
-                    int code = send(fd, &buf, sizeof buf, 0);
+                    int code = send(fd, Queries.front().first.c_str(), Queries.front().second, 0);
+                    Queries.pop();
+
                     if (code < 0) {
                         Finish();
                     } else {

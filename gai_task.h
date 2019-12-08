@@ -1,9 +1,9 @@
 #ifndef GETADDR_SERVER_GETADDRINFO_TASK_H
 #define GETADDR_SERVER_GETADDRINFO_TASK_H
 
+#include <arpa/inet.h>
 #include <iostream>
 #include <netdb.h>
-#include <arpa/inet.h>
 
 class TGetaddrinfoTask {
 public:
@@ -22,10 +22,12 @@ public:
     TGetaddrinfoTask &operator=(TGetaddrinfoTask &&) = delete;
 
 private:
+    static const size_t IP_NODE_MAX_SIZE = 46;
+
     addrinfo Hints;
-    addrinfo *Result;
+    addrinfo *Info;
     addrinfo *Node;
-    char addrstr[100];
+    char addrstr[IP_NODE_MAX_SIZE];
 };
 
 #endif //GETADDR_SERVER_GETADDRINFO_TASK_H

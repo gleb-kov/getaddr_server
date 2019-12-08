@@ -2,11 +2,12 @@
 #define GETADDR_SERVER_SERVER_H
 
 #include <cerrno>
-#include <chrono>
+// #include <chrono>
 #include <cstring>
 #include <functional>
 #include <memory>
 #include <netinet/in.h>
+#include <queue>
 #include <sys/epoll.h>
 #include <sys/socket.h>
 #include <unordered_map>
@@ -57,12 +58,16 @@ private:
     void Finish();
 
 private:
+    static const size_t DOMAIN_MAX_LENGTH = 255;
     static constexpr uint32_t CLOSE_EVENTS = (EPOLLERR | EPOLLRDHUP | EPOLLHUP);
 
-    std::chrono::steady_clock::time_point LastAction;
+    // std::chrono::steady_clock::time_point LastAction;
 
-    char buf[100];
-    TServer * Server;
+    // may help in future with mltthreading or replace with just pair
+    std::queue<std::pair<std::string, size_t>> Queries;
+    char Buffer[DOMAIN_MAX_LENGTH];
+
+    TServer *Server;
     std::unique_ptr<TIOTask> Task;
 };
 
