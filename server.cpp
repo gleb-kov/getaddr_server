@@ -8,39 +8,50 @@ namespace {
     }
 }
 
-TClientTimer::TClientTimer(int timeout) : TimeOut(timeout) {}
+TClientTimer::TClientTimer(int64_t timeout) : TimeOut(timeout) {}
 
 void TClientTimer::AddClient(TClient *client) {
-    int curtime = 0;
-    CachedAction.insert({client, curtime});
-    Connections.insert({{curtime, client}, std::unique_ptr<TClient>(client)});
+    time_point curtime = std::chrono::steady_clock::now();
+    auto insert1 = CachedAction.insert({client, curtime});
+    if (!insert1.second) {
+        throw std::runtime_error("Failed insertion into TClientTimer");
+    }
+    auto insert2 = Connections.insert({{curtime, client}, std::unique_ptr<TClient>(client)});
+    if (!insert2.second) {
+        CachedAction.erase(client);
+        throw std::runtime_error("Failed insertion into TClientTimer");
+    }
 }
 
 void TClientTimer::RefuseClient(TClient *client) {
-    // check if it in cachedaction god please noexception
-    int cachedLastAction = CachedAction[client];
+    time_point cachedLastAction = CachedAction[client];
     Connections.erase({cachedLastAction, client});
+    CachedAction.erase(client);
 }
 
-int TClientTimer::NextCheck() {
+int64_t TClientTimer::NextCheck() {
     return TimeOut;
 }
 
 void TClientTimer::RemoveOld() {
-    int curtime = 100;
+    time_point curtime = std::chrono::steady_clock::now();
     FakeConnections.clear();
-
-    for (auto it = Connections.cbegin(); it != Connections.cend();) {
-        if (curtime - it->first.first > TimeOut) {
+    /*for (auto it = Connections.cbegin(); it != Connections.cend();) {
+        if (TimeDiff(curtime, it->first.first) > TimeOut) {
             // FakeConnections.insert({{curtime, it->first.second}, it->second});
-            Connections.erase(it++);
+            // Connections.erase(it++);
         } else {
             break;
         }
-    }
+    }*/
 }
 
-TIOWorker::TIOWorker(int timeout) : Clients(timeout) {
+int64_t TClientTimer::TimeDiff(TClientTimer::time_point const &lhs,
+                               TClientTimer::time_point const &rhs) {
+    return std::chrono::duration_cast<std::chrono::milliseconds>(rhs - lhs).count();
+}
+
+TIOWorker::TIOWorker(int64_t timeout) : Clients(timeout) {
     efd = epoll_create1(0);
 
     if (efd < 0) {
@@ -113,7 +124,10 @@ TIOTask::TIOTask(TIOWorker *context,
                  uint32_t events,
                  int fd,
                  std::function<void(uint32_t, TIOTask *)> callback)
-        : Context(context), Events(events), fd(fd), CallbackHandler(std::move(callback)) {
+        : Context(context)
+        , Events(events)
+        , fd(fd)
+        , CallbackHandler(std::move(callback)) {
     epoll_event event{Events, this};
     Context->Add(fd, &event);
 }
@@ -185,6 +199,7 @@ TServer::TServer(TIOWorker &io_context, uint32_t address, uint16_t port)
 TClient::TClient(TIOWorker *io_context, int fd) : Context(io_context) {
     std::function<void(uint32_t, TIOTask *)> echo =
             [this, fd](uint32_t events, TIOTask *self) noexcept(true) {
+                LastAction = std::chrono::steady_clock::now();
                 if ((events & EPOLLERR) || (events & EPOLLRDHUP) || (events & EPOLLHUP)) {
                     Finish();
                     return;

@@ -3,7 +3,7 @@
 
 #include <array>
 #include <cerrno>
-// #include <chrono>
+#include <chrono>
 #include <csignal>
 #include <cstring>
 #include <functional>
@@ -19,26 +19,42 @@
 class TClient;
 
 class TClientTimer {
+    using time_point = std::chrono::steady_clock::time_point;
+
 public:
-    explicit TClientTimer(int timeout);
+    explicit TClientTimer(int64_t timeout);
 
     void AddClient(TClient *client);
 
     void RefuseClient(TClient *client);
 
-    int NextCheck();
+    int64_t NextCheck();
 
     void RemoveOld();
 
+    ~TClientTimer() = default;
+
+    TClientTimer(TClientTimer const &) = delete;
+
+    TClientTimer(TClientTimer &&) = delete;
+
+    TClientTimer &operator=(TClientTimer const &) = delete;
+
+    TClientTimer &operator=(TClientTimer &&) = delete;
+
 private:
-    int TimeOut;
-    std::unordered_map<TClient *, int> CachedAction;
-    std::map<std::pair<int, TClient*>, std::unique_ptr<TClient>> Connections, FakeConnections;
+    int64_t TimeDiff(time_point const &lhs, time_point const &rhs);
+
+private:
+    int64_t TimeOut;
+    std::unordered_map<TClient *, time_point> CachedAction;
+    std::map<std::pair<time_point, TClient *>,
+            std::unique_ptr<TClient>> Connections, FakeConnections;
 };
 
 class TIOWorker {
 public:
-    explicit TIOWorker(int timeout = -1);
+    explicit TIOWorker(int64_t timeout = -1);
 
     void ConnectClient(TClient *client);
 
@@ -143,6 +159,7 @@ private:
     std::queue<std::pair<std::string, size_t>> Queries;
     char Buffer[DOMAIN_MAX_LENGTH];
 
+    std::chrono::steady_clock::time_point LastAction;
     TIOWorker *Context;
     std::unique_ptr<TIOTask> Task;
 };
