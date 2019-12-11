@@ -30,28 +30,42 @@ void TClientTimer::RefuseClient(TClient *client) {
 }
 
 int64_t TClientTimer::NextCheck() {
-    return TimeOut;
+    if (Connections.empty()) {
+        return -1;
+    }
+    time_point curtime = std::chrono::steady_clock::now();
+    int64_t diff = TimeDiff(curtime, Connections.begin()->first.first);
+    return (diff > 0 ? diff : -1);
 }
 
 void TClientTimer::RemoveOld() {
     time_point curtime = std::chrono::steady_clock::now();
-    FakeConnections.clear();
-    /*for (auto it = Connections.cbegin(); it != Connections.cend();) {
-        if (TimeDiff(curtime, it->first.first) > TimeOut) {
-            // FakeConnections.insert({{curtime, it->first.second}, it->second});
-            // Connections.erase(it++);
-        } else {
+    Fake.clear();
+
+    auto it = Connections.begin();
+    for (; it != Connections.end(); it++) {
+        if (TimeDiff(curtime, it->first.first) < TimeOut) {
             break;
         }
-    }*/
+        time_point realLastTime = it->second->GetLastTime();
+        if (TimeDiff(curtime, realLastTime) < TimeOut) {
+            Fake.insert({{realLastTime, it->first.second}, std::move(it->second)});
+        }
+        CachedAction.erase(it->first.second);
+    }
+    Connections.erase(Connections.begin(), it);
+    for (auto & it2 : Fake) {
+        CachedAction.insert({it->first.second, it2.second->GetLastTime()});
+        Connections.insert({it2.first, std::move(it2.second)});
+    }
 }
 
 int64_t TClientTimer::TimeDiff(TClientTimer::time_point const &lhs,
                                TClientTimer::time_point const &rhs) {
-    return std::chrono::duration_cast<std::chrono::milliseconds>(rhs - lhs).count();
+    return std::chrono::duration_cast<std::chrono::seconds>(lhs - rhs).count();
 }
 
-TIOWorker::TIOWorker(int64_t timeout) : Clients(timeout) {
+TIOWorker::TIOWorker(int64_t sockTimeout) : Clients(sockTimeout) {
     efd = epoll_create1(0);
 
     if (efd < 0) {
@@ -96,14 +110,14 @@ int TIOWorker::TryRemove(int fd, epoll_event *task) noexcept {
     return ctlCode;
 }
 
-void TIOWorker::Exec() {
+void TIOWorker::Exec(int64_t epollTimeout) {
     signal(SIGINT, ::signalHandler);
     signal(SIGTERM, ::signalHandler);
     signal(SIGPIPE, SIG_IGN);
 
     std::array<epoll_event, TIOWORKER_EPOLL_MAX> events{};
     while (true) {
-        int count = epoll_wait(efd, events.data(), TIOWORKER_EPOLL_MAX, Clients.NextCheck());
+        int count = epoll_wait(efd, events.data(), TIOWORKER_EPOLL_MAX, epollTimeout);
 
         if (::quitSignalFlag == 1) {
             return;
@@ -228,6 +242,10 @@ TClient::TClient(TIOWorker *io_context, int fd) : Context(io_context) {
                 }
             };
     Task = std::make_unique<TIOTask>(Context, (CLOSE_EVENTS | EPOLLIN), fd, echo);
+}
+
+std::chrono::steady_clock::time_point TClient::GetLastTime() {
+    return LastAction;
 }
 
 void TClient::Finish() {

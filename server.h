@@ -28,7 +28,7 @@ public:
 
     void RefuseClient(TClient *client);
 
-    int64_t NextCheck();
+    [[maybe_unused]] int64_t NextCheck();
 
     void RemoveOld();
 
@@ -49,12 +49,12 @@ private:
     int64_t TimeOut;
     std::unordered_map<TClient *, time_point> CachedAction;
     std::map<std::pair<time_point, TClient *>,
-            std::unique_ptr<TClient>> Connections, FakeConnections;
+            std::unique_ptr<TClient>> Connections, Fake;
 };
 
 class TIOWorker {
 public:
-    explicit TIOWorker(int64_t timeout = -1);
+    explicit TIOWorker(int64_t sockTimeout = 600);
 
     void ConnectClient(TClient *client);
 
@@ -68,7 +68,7 @@ public:
 
     int TryRemove(int fd, epoll_event *) noexcept;
 
-    void Exec();
+    void Exec(int64_t epollTimeout = -1);
 
     ~TIOWorker() = default;
 
@@ -136,8 +136,12 @@ private:
 };
 
 class TClient {
+    using time_point = std::chrono::steady_clock::time_point;
+
 public:
     TClient(TIOWorker *io_context, int fd);
+
+    time_point GetLastTime();
 
     void Finish();
 
@@ -153,13 +157,14 @@ public:
 
 private:
     static const size_t DOMAIN_MAX_LENGTH = 255;
-    static constexpr uint32_t CLOSE_EVENTS = (EPOLLERR | EPOLLRDHUP | EPOLLHUP);
+    static constexpr uint32_t CLOSE_EVENTS =
+            (EPOLLERR | EPOLLRDHUP | EPOLLHUP);
 
     // may help in future with mltthreading or replace with just pair
     std::queue<std::pair<std::string, size_t>> Queries;
     char Buffer[DOMAIN_MAX_LENGTH];
 
-    std::chrono::steady_clock::time_point LastAction;
+    time_point LastAction;
     TIOWorker *Context;
     std::unique_ptr<TIOTask> Task;
 };
