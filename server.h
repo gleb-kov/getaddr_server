@@ -1,26 +1,106 @@
 #ifndef GETADDR_SERVER_SERVER_H
 #define GETADDR_SERVER_SERVER_H
 
+#include <array>
 #include <cerrno>
 // #include <chrono>
+#include <csignal>
 #include <cstring>
 #include <functional>
+#include <map>
 #include <memory>
 #include <netinet/in.h>
 #include <queue>
 #include <sys/epoll.h>
 #include <sys/socket.h>
+#include <unistd.h>
 #include <unordered_map>
 
-#include "iojob.h"
-
 class TClient;
+
+class TClientTimer {
+public:
+    explicit TClientTimer(int timeout);
+
+    void AddClient(TClient *client);
+
+    void RefuseClient(TClient *client);
+
+    int NextCheck();
+
+    void RemoveOld();
+
+private:
+    int TimeOut;
+    std::unordered_map<TClient *, int> CachedAction;
+    std::map<std::pair<int, TClient*>, std::unique_ptr<TClient>> Connections, FakeConnections;
+};
+
+class TIOWorker {
+public:
+    explicit TIOWorker(int timeout = -1);
+
+    void ConnectClient(TClient *client);
+
+    void RefuseClient(TClient *client);
+
+    void Add(int fd, epoll_event *);
+
+    [[maybe_unused]] void Edit(int fd, epoll_event *);
+
+    [[maybe_unused]] void Remove(int fd, epoll_event *);
+
+    int TryRemove(int fd, epoll_event *) noexcept;
+
+    void Exec();
+
+    ~TIOWorker() = default;
+
+    TIOWorker(TIOWorker const &) = delete;
+
+    TIOWorker(TIOWorker &&) = delete;
+
+    TIOWorker &operator=(TIOWorker const &) = delete;
+
+    TIOWorker &operator=(TIOWorker &&) = delete;
+
+public:
+    static const size_t TIOWORKER_EPOLL_MAX = 10000;
+
+private:
+    int efd;
+    TClientTimer Clients;
+};
+
+class TIOTask {
+public:
+    TIOTask(TIOWorker *context,
+            uint32_t events,
+            int fd,
+            std::function<void(uint32_t, TIOTask *)> callback);
+
+    void Callback(uint32_t events) noexcept;
+
+    ~TIOTask();
+
+    TIOTask(TIOTask const &) = delete;
+
+    TIOTask(TIOTask &&) = delete;
+
+    TIOTask &operator=(TIOTask const &) = delete;
+
+    TIOTask &operator=(TIOTask &&) = delete;
+
+private:
+    TIOWorker *Context;
+    uint32_t Events;
+    int fd;
+    std::function<void(uint32_t, TIOTask *)> CallbackHandler;
+};
 
 class TServer {
 public:
     TServer(TIOWorker &io_context, uint32_t address, uint16_t port);
-
-    void RefuseConnection(TClient *);
 
     ~TServer() = default;
 
@@ -37,12 +117,13 @@ private:
     const uint16_t Port;
 
     std::unique_ptr<TIOTask> Task;
-    std::unordered_map<TClient *, std::unique_ptr<TClient>> Connections;
 };
 
 class TClient {
 public:
-    TClient(TIOWorker &io_context, uint32_t fd, TServer *);
+    TClient(TIOWorker *io_context, int fd);
+
+    void Finish();
 
     ~TClient() = default;
 
@@ -55,19 +136,14 @@ public:
     TClient &operator=(TClient &&) = delete;
 
 private:
-    void Finish();
-
-private:
     static const size_t DOMAIN_MAX_LENGTH = 255;
     static constexpr uint32_t CLOSE_EVENTS = (EPOLLERR | EPOLLRDHUP | EPOLLHUP);
-
-    // std::chrono::steady_clock::time_point LastAction;
 
     // may help in future with mltthreading or replace with just pair
     std::queue<std::pair<std::string, size_t>> Queries;
     char Buffer[DOMAIN_MAX_LENGTH];
 
-    TServer *Server;
+    TIOWorker *Context;
     std::unique_ptr<TIOTask> Task;
 };
 

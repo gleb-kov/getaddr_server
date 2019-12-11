@@ -5,8 +5,6 @@ set(CMAKE_CXX_STANDARD 17)
 
 add_executable(getaddr_server
         main.cpp
-        iojob.cpp
-        iojob.h
         server.cpp
         server.h
         gai_task.cpp

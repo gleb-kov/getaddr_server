@@ -12,9 +12,9 @@ int main(int argc, char *argv[]) {
     int port = (argc == 2 ? atoi(argv[1]) : 58239);
 
     try {
-        TIOWorker io_context;
+        TIOWorker io_context(500);
         TServer server(io_context, htonl(INADDR_ANY), htons(port));
-        io_context.Exec(500);
+        io_context.Exec();
     } catch (std::exception const &e) {
         std::cerr << "EXCEPTION: " << e.what() << std::endl;
     } catch (...) {
