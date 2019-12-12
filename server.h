@@ -145,6 +145,8 @@ public:
 
     time_point GetLastTime();
 
+    void ConfigureEvents();
+
     void Finish();
 
     ~TClient() = default;
@@ -162,8 +164,6 @@ private:
     static constexpr uint32_t CLOSE_EVENTS =
             (EPOLLERR | EPOLLRDHUP | EPOLLHUP);
 
-    // may help in future with mltthreading or replace with just pair
-    std::queue<std::pair<std::string, size_t>> Queries;
     char Buffer[DOMAIN_MAX_LENGTH];
 
     time_point LastAction;

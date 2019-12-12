@@ -20,6 +20,10 @@ public:
 
     void SetTask(char *, size_t);
 
+    size_t GetFreeSpace();
+
+    bool AllProcessed();
+
     bool HaveResult();
 
     ResultType GetResult();
@@ -37,10 +41,11 @@ public:
     TGetaddrinfoTask &operator=(TGetaddrinfoTask &&) = delete;
 
 private:
-    ResultType ProcessNext(char const *, [[maybe_unused]] size_t);
+    ResultType ProcessNext(char *, [[maybe_unused]] size_t);
 
 private:
     static const size_t IP_NODE_MAX_SIZE = 46;
+    static const size_t QUERIES_MAX = 1000;
 
     addrinfo Hints;
     addrinfo *Info;

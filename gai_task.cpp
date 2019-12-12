@@ -32,8 +32,22 @@ TGetaddrinfoTask::TGetaddrinfoTask()
 
 void TGetaddrinfoTask::SetTask(char *host, size_t len) {
     std::unique_lock<std::mutex> lg(Mutex);
+    if (Queries.size() + Results.size() >= QUERIES_MAX) {
+        throw std::runtime_error("TGetaddrinfotask::SetTask() on full queries queue");
+    }
     Queries.push({host, len});
     HaveWork = true;
+    CV.notify_all();
+}
+
+size_t TGetaddrinfoTask::GetFreeSpace() {
+    std::unique_lock<std::mutex> lg(Mutex);
+    return (QUERIES_MAX - Queries.size() - Results.size());
+}
+
+bool TGetaddrinfoTask::AllProcessed() {
+    std::unique_lock<std::mutex> lg(Mutex);
+    return !Queries.empty();
 }
 
 bool TGetaddrinfoTask::HaveResult() {
@@ -44,7 +58,7 @@ bool TGetaddrinfoTask::HaveResult() {
 std::string TGetaddrinfoTask::GetResult() {
     std::unique_lock<std::mutex> lg(Mutex);
     if (Results.empty()) {
-        throw std::runtime_error("Incorrect usage of getaddrtask.");
+        throw std::runtime_error("TGetaddrinfotask::GetResult() on empty results queue.");
     }
     std::string tmp = Results.front();
     Results.pop();
@@ -65,12 +79,18 @@ TGetaddrinfoTask::~TGetaddrinfoTask() {
     Thread.join();
 }
 
-std::string TGetaddrinfoTask::ProcessNext(char const * host, size_t size) {
-    int errorCode = getaddrinfo(host, nullptr, &Hints, &Info);
+std::string TGetaddrinfoTask::ProcessNext(char * host, size_t size) {
+    std::string tmp = host;
+    if (tmp.size() > size) {
+        tmp.erase(tmp.begin() + size, tmp.end());
+    }
+    while(!tmp.empty() && (tmp.back() == '\r' || tmp.back() == '\n')) {
+        tmp.pop_back();
+    }
 
-    std::string res = "Host";
-    res += host;
-    res += "\n";
+    int errorCode = getaddrinfo(tmp.c_str(), nullptr, &Hints, &Info);
+
+    std::string res = "Host: " + tmp + "\n";
 
     if (errorCode != 0) {
         res += "Getaddrinfo() failed.";

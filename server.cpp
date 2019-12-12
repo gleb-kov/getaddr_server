@@ -213,39 +213,52 @@ TServer::TServer(TIOWorker &io_context, uint32_t address, uint16_t port)
 TClient::TClient(TIOWorker *io_context, int fd) : Context(io_context) {
     std::function<void(uint32_t, TIOTask *)> echo =
             [this, fd](uint32_t events, TIOTask *self) noexcept(true) {
-                LastAction = std::chrono::steady_clock::now();
                 if ((events & EPOLLERR) || (events & EPOLLRDHUP) || (events & EPOLLHUP)) {
                     Finish();
                     return;
                 }
+                LastAction = std::chrono::steady_clock::now();
+                // ConfigureEvents();
+
                 if (events & EPOLLIN) {
+                    if (QueryProcesser.GetFreeSpace() == 0) {
+                        return;
+                    }
                     int code = recv(fd, &Buffer, DOMAIN_MAX_LENGTH, 0);
                     if (code < 0) {
                         Finish();
                     } else {
-                        Queries.push({Buffer, code});
-                        epoll_event e{(CLOSE_EVENTS | EPOLLOUT), self};
-                        Context->Edit(fd, &e);
+                        QueryProcesser.SetTask(Buffer, code);
+                        //epoll_event e{(CLOSE_EVENTS | EPOLLOUT), self};
+                        //Context->Edit(fd, &e);
                     }
                     return;
                 }
                 if (events & EPOLLOUT) {
-                    int code = send(fd, Queries.front().first.c_str(), Queries.front().second, 0);
-                    Queries.pop();
+                    if (!QueryProcesser.HaveResult()) {
+                        return;
+                    }
+                    std::string tmp = QueryProcesser.GetResult();
+                    int code = send(fd, tmp.c_str(), tmp.size(), 0);
 
                     if (code < 0) {
                         Finish();
                     } else {
-                        epoll_event e{(CLOSE_EVENTS | EPOLLIN), self};
-                        Context->Edit(fd, &e);
+                        //epoll_event e{(CLOSE_EVENTS | EPOLLIN), self};
+                        //Context->Edit(fd, &e);
                     }
                 }
             };
-    Task = std::make_unique<TIOTask>(Context, (CLOSE_EVENTS | EPOLLIN), fd, echo);
+    Task = std::make_unique<TIOTask>(Context, (CLOSE_EVENTS | EPOLLIN | EPOLLOUT), fd, echo);
 }
 
 std::chrono::steady_clock::time_point TClient::GetLastTime() {
     return LastAction;
+}
+
+void TClient::ConfigureEvents() {
+    // epoll_event e{(CLOSE_EVENTS | EPOLLOUT), self};
+    // Context->Edit(fd, &e);
 }
 
 void TClient::Finish() {

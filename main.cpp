@@ -2,17 +2,10 @@
 
 #include "server.h"
 
-int main(int argc, char *argv[]) {
-    if (argc > 2) {
-        std::cerr << "Usage: ./getaddr-server <port> (default 58239)" << std::endl;
-        return 1;
-    }
-
-    int port = (argc == 2 ? atoi(argv[1]) : 58239);
-
+int main() {
     try {
         TIOWorker io_context(5);
-        TServer server(io_context, htonl(INADDR_ANY), htons(port));
+        TServer server(io_context, htonl(INADDR_ANY), htons(58239));
         io_context.Exec(1000);
     } catch (std::exception const &e) {
         std::cerr << "EXCEPTION: " << e.what() << std::endl;
