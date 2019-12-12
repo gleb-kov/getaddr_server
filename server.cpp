@@ -137,7 +137,7 @@ void TIOWorker::Exec(int64_t epollTimeout) {
 TIOTask::TIOTask(TIOWorker *context,
                  uint32_t events,
                  int fd,
-                 std::function<void(uint32_t, TIOTask *)> callback)
+                 std::function<void(uint32_t, TIOTask *)> &callback)
         : Context(context)
         , Events(events)
         , fd(fd)
