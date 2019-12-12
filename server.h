@@ -16,6 +16,8 @@
 #include <unistd.h>
 #include <unordered_map>
 
+#include "gai_task.h"
+
 class TClient;
 
 class TClientTimer {
@@ -166,6 +168,7 @@ private:
 
     time_point LastAction;
     TIOWorker *Context;
+    // TGetaddrinfoTask QueryProcesser;
     std::unique_ptr<TIOTask> Task;
 };
 

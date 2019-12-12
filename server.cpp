@@ -25,8 +25,8 @@ void TClientTimer::AddClient(TClient *client) {
 
 void TClientTimer::RefuseClient(TClient *client) {
     time_point cachedLastAction = CachedAction[client];
-    Connections.erase({cachedLastAction, client});
     CachedAction.erase(client);
+    Connections.erase({cachedLastAction, client});
 }
 
 int64_t TClientTimer::NextCheck() {
@@ -55,7 +55,7 @@ void TClientTimer::RemoveOld() {
     }
     Connections.erase(Connections.begin(), it);
     for (auto & it2 : Fake) {
-        CachedAction.insert({it->first.second, it2.second->GetLastTime()});
+        CachedAction.insert({it2.first.second, it2.second->GetLastTime()});
         Connections.insert({it2.first, std::move(it2.second)});
     }
 }
