@@ -4,22 +4,37 @@ TGetaddrinfoTask::TGetaddrinfoTask()
         : Hints{0, AF_UNSPEC, SOCK_STREAM}
         , Info(nullptr)
         , Node(nullptr)
+        , HaveWork(false)
         , Cancel(false)
-        /*, Thread([this] {
+        , Thread([this] {
             while(true) {
                 std::unique_lock<std::mutex> lg(Mutex);
                 CV.wait(lg, [this] {
-                    return Cancel.load();
+                    return Cancel.load() || HaveWork;
                 });
 
-                if(Cancel) {
+                if (Cancel) {
                     break;
                 }
+
+                char * tmp = Queries.front().first;
+                size_t tmpsize = Queries.front().second;
+                Queries.pop();
+                HaveWork = !Queries.empty();
+
+                lg.unlock();
+                std::string result = ProcessNext(tmp, tmpsize);
+                lg.lock();
+                Results.push(result);
             }
-        })*/
+        })
 {}
 
-void TGetaddrinfoTask::SetTask(const char *host, size_t len) {}
+void TGetaddrinfoTask::SetTask(char *host, size_t len) {
+    std::unique_lock<std::mutex> lg(Mutex);
+    Queries.push({host, len});
+    HaveWork = true;
+}
 
 bool TGetaddrinfoTask::HaveResult() {
     std::unique_lock<std::mutex> lg(Mutex);
@@ -29,7 +44,7 @@ bool TGetaddrinfoTask::HaveResult() {
 std::string TGetaddrinfoTask::GetResult() {
     std::unique_lock<std::mutex> lg(Mutex);
     if (Results.empty()) {
-        throw std::runtime_error("Incorrect usage of getaddrtask");
+        throw std::runtime_error("Incorrect usage of getaddrtask.");
     }
     std::string tmp = Results.front();
     Results.pop();
@@ -50,13 +65,18 @@ TGetaddrinfoTask::~TGetaddrinfoTask() {
     Thread.join();
 }
 
-void TGetaddrinfoTask::ProcessNext(char const * host) {
+std::string TGetaddrinfoTask::ProcessNext(char const * host, size_t size) {
     int errorCode = getaddrinfo(host, nullptr, &Hints, &Info);
 
-    std::cerr << "Host: " << host << std::endl;
+    std::string res = "Host";
+    res += host;
+    res += "\n";
+
     if (errorCode != 0) {
-        std::cerr << "Getaddrinfo() failed. Error: " << errorCode << std::endl;
-        return;
+        res += "Getaddrinfo() failed.";
+        // res += "Error: " + errorCode
+        res += "\n";
+        return res;
     }
 
     void *ptr = nullptr;
@@ -68,9 +88,10 @@ void TGetaddrinfoTask::ProcessNext(char const * host) {
         } else {
             continue;
         }
-
         inet_ntop(Node->ai_family, ptr, addrstr, IP_NODE_MAX_SIZE);
-        std::cerr << addrstr << std::endl;
+        res += addrstr;
+        res += "\n";
     }
     freeaddrinfo(Info);
+    return res;
 }

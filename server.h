@@ -83,7 +83,7 @@ public:
     TIOWorker &operator=(TIOWorker &&) = delete;
 
 public:
-    static const size_t TIOWORKER_EPOLL_MAX = 10000;
+    static const size_t TIOWORKER_EPOLL_MAX = 2000;
 
 private:
     int efd;
@@ -168,7 +168,7 @@ private:
 
     time_point LastAction;
     TIOWorker *Context;
-    // TGetaddrinfoTask QueryProcesser;
+    TGetaddrinfoTask QueryProcesser;
     std::unique_ptr<TIOTask> Task;
 };
 

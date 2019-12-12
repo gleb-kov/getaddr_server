@@ -18,7 +18,7 @@ class TGetaddrinfoTask {
 public:
     TGetaddrinfoTask();
 
-    void SetTask(const char *, size_t);
+    void SetTask(char *, size_t);
 
     bool HaveResult();
 
@@ -37,7 +37,7 @@ public:
     TGetaddrinfoTask &operator=(TGetaddrinfoTask &&) = delete;
 
 private:
-    void ProcessNext(char const *);
+    ResultType ProcessNext(char const *, [[maybe_unused]] size_t);
 
 private:
     static const size_t IP_NODE_MAX_SIZE = 46;
@@ -49,7 +49,8 @@ private:
 
 private:
     mutable std::mutex Mutex;
-    std::queue<char const *> Queries;
+    bool HaveWork;
+    std::queue<std::pair<char *, size_t>> Queries;
     std::queue<ResultType> Results;
 
     std::atomic<bool> Cancel;
