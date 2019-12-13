@@ -61,7 +61,7 @@ void TClientTimer::RemoveOld() {
 }
 
 int64_t TClientTimer::TimeDiff(TClientTimer::time_point const &lhs,
-                               TClientTimer::time_point const &rhs) {
+                               TClientTimer::time_point const &rhs) const {
     return std::chrono::duration_cast<std::chrono::seconds>(lhs - rhs).count();
 }
 
@@ -135,14 +135,13 @@ void TIOWorker::Exec(int64_t epollTimeout) {
 }
 
 TIOTask::TIOTask(TIOWorker *context,
-                 uint32_t events,
                  int fd,
-                 std::function<void(uint32_t, TIOTask *)> &callback)
+                 std::function<void(uint32_t, TIOTask *)> &callback,
+                 uint32_t events)
         : Context(context)
-        , Events(events)
         , fd(fd)
         , CallbackHandler(std::move(callback)) {
-    epoll_event event{Events, this};
+    epoll_event event{events, this};
     Context->Add(fd, &event);
 }
 
@@ -152,7 +151,7 @@ void TIOTask::Callback(uint32_t events) noexcept {
 
 TIOTask::~TIOTask() {
     if (Context) {
-        epoll_event event{Events, this};
+        epoll_event event{0, this};
         Context->TryRemove(fd, &event);
     }
     shutdown(fd, SHUT_RDWR);
@@ -207,7 +206,7 @@ TServer::TServer(TIOWorker &io_context, uint32_t address, uint16_t port)
                     delete clientPtr;
                 }
             };
-    Task = std::make_unique<TIOTask>(&io_context, EPOLLIN, fd, receiver);
+    Task = std::make_unique<TIOTask>(&io_context, fd, receiver, EPOLLIN);
 }
 
 TClient::TClient(TIOWorker *io_context, int fd) : Context(io_context) {
@@ -249,10 +248,10 @@ TClient::TClient(TIOWorker *io_context, int fd) : Context(io_context) {
                     }
                 }
             };
-    Task = std::make_unique<TIOTask>(Context, (CLOSE_EVENTS | EPOLLIN | EPOLLOUT), fd, echo);
+    Task = std::make_unique<TIOTask>(Context, fd, echo, (CLOSE_EVENTS | EPOLLIN | EPOLLOUT));
 }
 
-std::chrono::steady_clock::time_point TClient::GetLastTime() {
+std::chrono::steady_clock::time_point TClient::GetLastTime() const {
     return LastAction;
 }
 

@@ -20,11 +20,11 @@ public:
 
     void SetTask(char *, size_t);
 
-    size_t GetFreeSpace();
+    size_t GetFreeSpace() const;
 
-    bool AllProcessed();
+    bool AllProcessed() const;
 
-    bool HaveResult();
+    bool HaveResult() const;
 
     ResultType GetResult();
 

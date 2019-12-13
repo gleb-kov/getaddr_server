@@ -40,17 +40,17 @@ void TGetaddrinfoTask::SetTask(char *host, size_t len) {
     CV.notify_all();
 }
 
-size_t TGetaddrinfoTask::GetFreeSpace() {
+size_t TGetaddrinfoTask::GetFreeSpace() const {
     std::unique_lock<std::mutex> lg(Mutex);
     return (QUERIES_MAX - Queries.size() - Results.size());
 }
 
-bool TGetaddrinfoTask::AllProcessed() {
+bool TGetaddrinfoTask::AllProcessed() const {
     std::unique_lock<std::mutex> lg(Mutex);
     return !Queries.empty();
 }
 
-bool TGetaddrinfoTask::HaveResult() {
+bool TGetaddrinfoTask::HaveResult() const {
     std::unique_lock<std::mutex> lg(Mutex);
     return !Results.empty();
 }

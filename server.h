@@ -45,10 +45,10 @@ public:
     TClientTimer &operator=(TClientTimer &&) = delete;
 
 private:
-    int64_t TimeDiff(time_point const &lhs, time_point const &rhs);
+    [[nodiscard]] int64_t TimeDiff(time_point const &lhs, time_point const &rhs) const;
 
 private:
-    int64_t TimeOut;
+    const int64_t TimeOut;
     std::unordered_map<TClient *, time_point> CachedAction;
     std::map<std::pair<time_point, TClient *>,
             std::unique_ptr<TClient>> Connections, Fake;
@@ -93,9 +93,9 @@ private:
 class TIOTask {
 public:
     TIOTask(TIOWorker *context,
-            uint32_t events,
             int fd,
-            std::function<void(uint32_t, TIOTask *)> &callback);
+            std::function<void(uint32_t, TIOTask *)> &callback,
+            uint32_t events);
 
     void Callback(uint32_t events) noexcept;
 
@@ -111,8 +111,7 @@ public:
 
 private:
     TIOWorker *Context;
-    uint32_t Events;
-    int fd;
+    const int fd;
     std::function<void(uint32_t, TIOTask *)> CallbackHandler;
 };
 
@@ -133,7 +132,6 @@ public:
 private:
     const uint32_t Address;
     const uint16_t Port;
-
     std::unique_ptr<TIOTask> Task;
 };
 
@@ -143,7 +141,7 @@ class TClient {
 public:
     TClient(TIOWorker *io_context, int fd);
 
-    time_point GetLastTime();
+    time_point GetLastTime() const;
 
     void ConfigureEvents();
 
@@ -165,9 +163,8 @@ private:
             (EPOLLERR | EPOLLRDHUP | EPOLLHUP);
 
     char Buffer[DOMAIN_MAX_LENGTH];
-
     time_point LastAction;
-    TIOWorker *Context;
+    TIOWorker * const Context;
     TGetaddrinfoTask QueryProcesser;
     std::unique_ptr<TIOTask> Task;
 };
