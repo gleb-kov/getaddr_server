@@ -20,11 +20,11 @@ TGetaddrinfoTask::TGetaddrinfoTask()
                 char * tmp = Queries.front().first;
                 size_t tmpsize = Queries.front().second;
                 Queries.pop();
-                HaveWork = !Queries.empty();
 
                 lg.unlock();
                 std::string result = ProcessNext(tmp, tmpsize);
                 lg.lock();
+                HaveWork = !Queries.empty();
                 Results.push(result);
             }
         })
@@ -40,14 +40,14 @@ void TGetaddrinfoTask::SetTask(char *host, size_t len) {
     CV.notify_all();
 }
 
-size_t TGetaddrinfoTask::GetFreeSpace() const {
+bool TGetaddrinfoTask::HaveFreeSpace() const {
     std::unique_lock<std::mutex> lg(Mutex);
-    return (QUERIES_MAX - Queries.size() - Results.size());
+    return Queries.size() + Results.size() < QUERIES_MAX;
 }
 
-bool TGetaddrinfoTask::AllProcessed() const {
+bool TGetaddrinfoTask::HaveUnprocessed() const {
     std::unique_lock<std::mutex> lg(Mutex);
-    return !Queries.empty();
+    return HaveWork;
 }
 
 bool TGetaddrinfoTask::HaveResult() const {

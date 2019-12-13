@@ -97,6 +97,8 @@ public:
             std::function<void(uint32_t, TIOTask *)> &callback,
             uint32_t events);
 
+    void Reconfigure(bool in, bool out);
+
     void Callback(uint32_t events) noexcept;
 
     ~TIOTask();
@@ -108,6 +110,10 @@ public:
     TIOTask &operator=(TIOTask const &) = delete;
 
     TIOTask &operator=(TIOTask &&) = delete;
+
+public:
+    static constexpr uint32_t CLOSE_EVENTS =
+            (EPOLLERR | EPOLLRDHUP | EPOLLHUP);
 
 private:
     TIOWorker *Context;
@@ -143,7 +149,7 @@ public:
 
     time_point GetLastTime() const;
 
-    void ConfigureEvents();
+    void Configure();
 
     void Finish();
 
@@ -159,12 +165,10 @@ public:
 
 private:
     static const size_t DOMAIN_MAX_LENGTH = 255;
-    static constexpr uint32_t CLOSE_EVENTS =
-            (EPOLLERR | EPOLLRDHUP | EPOLLHUP);
 
     char Buffer[DOMAIN_MAX_LENGTH];
     time_point LastAction;
-    TIOWorker * const Context;
+    TIOWorker *const Context;
     TGetaddrinfoTask QueryProcesser;
     std::unique_ptr<TIOTask> Task;
 };

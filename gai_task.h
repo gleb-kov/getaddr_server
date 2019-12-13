@@ -20,9 +20,9 @@ public:
 
     void SetTask(char *, size_t);
 
-    size_t GetFreeSpace() const;
+    bool HaveFreeSpace() const;
 
-    bool AllProcessed() const;
+    bool HaveUnprocessed() const;
 
     bool HaveResult() const;
 
