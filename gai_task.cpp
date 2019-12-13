@@ -17,12 +17,12 @@ TGetaddrinfoTask::TGetaddrinfoTask()
                     break;
                 }
 
-                char * tmp = Queries.front().first;
-                size_t tmpsize = Queries.front().second;
+                char * URL = Queries.front().first;
+                size_t URLSize = Queries.front().second;
                 Queries.pop();
 
                 lg.unlock();
-                std::string result = ProcessNext(tmp, tmpsize);
+                std::string result = ProcessNext(URL, URLSize);
                 lg.lock();
                 HaveWork = !Queries.empty();
                 Results.push(result);
@@ -108,8 +108,8 @@ std::string TGetaddrinfoTask::ProcessNext(char * host, size_t size) {
         } else {
             continue;
         }
-        inet_ntop(Node->ai_family, ptr, addrstr, IP_NODE_MAX_SIZE);
-        res += addrstr;
+        inet_ntop(Node->ai_family, ptr, AddrStr, IP_NODE_MAX_SIZE);
+        res += AddrStr;
         res += "\n";
     }
     freeaddrinfo(Info);

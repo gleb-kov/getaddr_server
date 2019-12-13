@@ -68,7 +68,7 @@ public:
 
     [[maybe_unused]] void Remove(int fd, epoll_event *);
 
-    int TryRemove(int fd, epoll_event *) noexcept;
+    [[maybe_unused]] int TryRemove(int fd, epoll_event *) noexcept;
 
     void Exec(int64_t epollTimeout = -1);
 
@@ -94,7 +94,7 @@ class TIOTask {
 public:
     TIOTask(TIOWorker *context,
             int fd,
-            std::function<void(uint32_t, TIOTask *)> &callback,
+            std::function<void(uint32_t)> &callback,
             uint32_t events);
 
     void Reconfigure(bool in, bool out);
@@ -116,9 +116,9 @@ public:
             (EPOLLERR | EPOLLRDHUP | EPOLLHUP);
 
 private:
-    TIOWorker *Context;
+    TIOWorker *const Context;
     const int fd;
-    std::function<void(uint32_t, TIOTask *)> CallbackHandler;
+    std::function<void(uint32_t)> CallbackHandler;
 };
 
 class TServer {
@@ -166,7 +166,7 @@ public:
 private:
     static const size_t DOMAIN_MAX_LENGTH = 255;
 
-    char Buffer[DOMAIN_MAX_LENGTH];
+    char Buffer[DOMAIN_MAX_LENGTH] = {0};
     time_point LastAction;
     TIOWorker *const Context;
     TGetaddrinfoTask QueryProcesser;

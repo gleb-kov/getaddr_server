@@ -13,7 +13,7 @@
 #include <thread>
 
 class TGetaddrinfoTask {
-    using ResultType = std::string;
+    using result_t = std::string;
 
 public:
     TGetaddrinfoTask();
@@ -26,7 +26,7 @@ public:
 
     bool HaveResult() const;
 
-    ResultType GetResult();
+    result_t GetResult();
 
     void Stop();
 
@@ -41,7 +41,7 @@ public:
     TGetaddrinfoTask &operator=(TGetaddrinfoTask &&) = delete;
 
 private:
-    ResultType ProcessNext(char *, [[maybe_unused]] size_t);
+    result_t ProcessNext(char *, [[maybe_unused]] size_t);
 
 private:
     static const size_t IP_NODE_MAX_SIZE = 46;
@@ -50,13 +50,13 @@ private:
     addrinfo Hints;
     addrinfo *Info;
     addrinfo *Node;
-    char addrstr[IP_NODE_MAX_SIZE];
+    char AddrStr[IP_NODE_MAX_SIZE] = {0};
 
 private:
     mutable std::mutex Mutex;
     bool HaveWork;
     std::queue<std::pair<char *, size_t>> Queries;
-    std::queue<ResultType> Results;
+    std::queue<result_t> Results;
 
     std::atomic<bool> Cancel;
     std::condition_variable CV;
