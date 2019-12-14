@@ -20,41 +20,40 @@
 
 class TClient;
 
-class TClientTimer {
-    using time_point = std::chrono::steady_clock::time_point;
-
-public:
-    explicit TClientTimer(int64_t timeout);
-
-    void AddClient(TClient *client);
-
-    void RefuseClient(TClient *client);
-
-    [[maybe_unused]] int64_t NextCheck();
-
-    void RemoveOld();
-
-    ~TClientTimer() = default;
-
-    TClientTimer(TClientTimer const &) = delete;
-
-    TClientTimer(TClientTimer &&) = delete;
-
-    TClientTimer &operator=(TClientTimer const &) = delete;
-
-    TClientTimer &operator=(TClientTimer &&) = delete;
-
-private:
-    [[nodiscard]] int64_t TimeDiff(time_point const &lhs, time_point const &rhs) const;
-
-private:
-    const int64_t TimeOut;
-    std::unordered_map<TClient *, time_point> CachedAction;
-    std::map<std::pair<time_point, TClient *>,
-            std::unique_ptr<TClient>> Connections, Fake;
-};
-
 class TIOWorker {
+    class TClientTimer {
+        using time_point = std::chrono::steady_clock::time_point;
+
+    public:
+        explicit TClientTimer(int64_t timeout);
+
+        void AddClient(TClient *client);
+
+        void RefuseClient(TClient *client);
+
+        [[maybe_unused]] int64_t NextCheck();
+
+        void RemoveOld();
+
+        ~TClientTimer() = default;
+
+        TClientTimer(TClientTimer const &) = delete;
+
+        TClientTimer(TClientTimer &&) = delete;
+
+        TClientTimer &operator=(TClientTimer const &) = delete;
+
+        TClientTimer &operator=(TClientTimer &&) = delete;
+
+    private:
+        [[nodiscard]] int64_t TimeDiff(time_point const &lhs, time_point const &rhs) const;
+
+    private:
+        const int64_t TimeOut;
+        std::unordered_map<TClient *, time_point> CachedAction;
+        std::map<std::pair<time_point, TClient *>,
+                std::unique_ptr<TClient>> Connections, Fake;
+    };
 public:
     explicit TIOWorker(int64_t sockTimeout = 600);
 
@@ -95,9 +94,14 @@ public:
     TIOTask(TIOWorker *context,
             int fd,
             std::function<void(uint32_t)> &callback,
+            std::function<void()> &finisher,
             uint32_t events);
 
-    void Reconfigure(bool in, bool out);
+    void Reconfigure(bool in, bool out, uint32_t other = 0);
+
+    [[maybe_unused]] int Read(char *, size_t);
+
+    [[maybe_unused]] void Write(const char *, size_t);
 
     void Callback(uint32_t events) noexcept;
 
@@ -111,6 +115,8 @@ public:
 
     TIOTask &operator=(TIOTask &&) = delete;
 
+    static bool IsClosingEvent(uint32_t event);
+
 public:
     static constexpr uint32_t CLOSE_EVENTS =
             (EPOLLERR | EPOLLRDHUP | EPOLLHUP);
@@ -119,6 +125,7 @@ private:
     TIOWorker *const Context;
     const int fd;
     std::function<void(uint32_t)> CallbackHandler;
+    std::function<void()> FinishHandler;
 };
 
 class TServer {
