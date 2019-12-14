@@ -2,7 +2,6 @@
 #define GETADDR_SERVER_GETADDRINFO_TASK_H
 
 #include <arpa/inet.h>
-#include <iostream>
 #include <netdb.h>
 #include <string>
 #include <queue>

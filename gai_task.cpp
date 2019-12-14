@@ -1,7 +1,11 @@
 #include "gai_task.h"
 
 TGetaddrinfoTask::TGetaddrinfoTask()
-        : Hints{0, AF_UNSPEC, SOCK_STREAM}, Info(nullptr), Node(nullptr), HaveWork(false), Cancel(false),
+        : Hints{0, AF_UNSPEC, SOCK_STREAM}
+        , Info(nullptr)
+        , Node(nullptr)
+        , HaveWork(false)
+        , Cancel(false),
           Thread([this] {
               while (true) {
                   std::unique_lock<std::mutex> lg(Mutex);
@@ -23,7 +27,8 @@ TGetaddrinfoTask::TGetaddrinfoTask()
                   HaveWork = !Queries.empty();
                   Results.push(result);
               }
-          }) {}
+          })
+{}
 
 void TGetaddrinfoTask::SetTask(char *host, size_t len) {
     std::unique_lock<std::mutex> lg(Mutex);

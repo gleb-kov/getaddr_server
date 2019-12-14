@@ -171,7 +171,8 @@ TIOTask::~TIOTask() {
 }
 
 TServer::TServer(TIOWorker &io_context, uint32_t address, uint16_t port)
-        : Address(address), Port(port) {
+        : Address(address)
+        , Port(port) {
     int fd = socket(AF_INET, SOCK_STREAM, 0);
     if (fd < 0) {
         throw std::runtime_error(std::string("TServer() socket() call. ") + std::strerror(errno));
