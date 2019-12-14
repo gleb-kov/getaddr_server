@@ -1,34 +1,29 @@
 #include "gai_task.h"
 
 TGetaddrinfoTask::TGetaddrinfoTask()
-        : Hints{0, AF_UNSPEC, SOCK_STREAM}
-        , Info(nullptr)
-        , Node(nullptr)
-        , HaveWork(false)
-        , Cancel(false)
-        , Thread([this] {
-            while(true) {
-                std::unique_lock<std::mutex> lg(Mutex);
-                CV.wait(lg, [this] {
-                    return Cancel.load() || HaveWork;
-                });
+        : Hints{0, AF_UNSPEC, SOCK_STREAM}, Info(nullptr), Node(nullptr), HaveWork(false), Cancel(false),
+          Thread([this] {
+              while (true) {
+                  std::unique_lock<std::mutex> lg(Mutex);
+                  CV.wait(lg, [this] {
+                      return Cancel.load() || HaveWork;
+                  });
 
-                if (Cancel) {
-                    break;
-                }
+                  if (Cancel) {
+                      break;
+                  }
 
-                char * URL = Queries.front().first;
-                size_t URLSize = Queries.front().second;
-                Queries.pop();
+                  char *URL = Queries.front().first;
+                  size_t URLSize = Queries.front().second;
+                  Queries.pop();
 
-                lg.unlock();
-                std::string result = ProcessNext(URL, URLSize);
-                lg.lock();
-                HaveWork = !Queries.empty();
-                Results.push(result);
-            }
-        })
-{}
+                  lg.unlock();
+                  std::string result = ProcessNext(URL, URLSize);
+                  lg.lock();
+                  HaveWork = !Queries.empty();
+                  Results.push(result);
+              }
+          }) {}
 
 void TGetaddrinfoTask::SetTask(char *host, size_t len) {
     std::unique_lock<std::mutex> lg(Mutex);
@@ -75,16 +70,17 @@ TGetaddrinfoTask::~TGetaddrinfoTask() {
     {
         std::unique_lock<std::mutex> lg(Mutex);
         CV.notify_all();
+        kill(Thread.native_handle(), SIGINT);
     }
     Thread.join();
 }
 
-std::string TGetaddrinfoTask::ProcessNext(char * host, size_t size) {
+std::string TGetaddrinfoTask::ProcessNext(char *host, size_t size) {
     std::string tmp = host;
     if (tmp.size() > size) {
         tmp.erase(tmp.begin() + size, tmp.end());
     }
-    while(!tmp.empty() && (tmp.back() == '\r' || tmp.back() == '\n')) {
+    while (!tmp.empty() && (tmp.back() == '\r' || tmp.back() == '\n')) {
         tmp.pop_back();
     }
 

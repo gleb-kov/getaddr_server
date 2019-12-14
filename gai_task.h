@@ -9,6 +9,7 @@
 
 #include <atomic>
 #include <condition_variable>
+#include <csignal>
 #include <mutex>
 #include <thread>
 
