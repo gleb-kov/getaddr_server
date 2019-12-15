@@ -91,17 +91,21 @@ private:
 
 class TIOTask {
 public:
+    using callback_t = std::function<void(TIOTask * const, uint32_t)>;
+
     TIOTask(TIOWorker *context,
             int fd,
-            std::function<void(uint32_t)> &callback,
+            callback_t &callback,
             std::function<void()> &finisher,
             uint32_t events);
 
-    void Reconfigure(bool in, bool out, uint32_t other = 0);
+    // void SetTask(callback_t &callback);
 
-    // [[maybe_unused]] int Read(char *, size_t);
+    void Reconfigure(uint32_t other = 0);
 
-    // [[maybe_unused]] void Write(const char *, size_t);
+    [[maybe_unused]] int Read(char *, size_t);
+
+    [[maybe_unused]] void Write(const char *, size_t);
 
     void Callback(uint32_t events) noexcept;
 
@@ -124,7 +128,7 @@ public:
 private:
     TIOWorker *const Context;
     const int fd;
-    std::function<void(uint32_t)> CallbackHandler;
+    callback_t CallbackHandler;
     std::function<void()> FinishHandler;
 };
 
@@ -156,10 +160,6 @@ public:
 
     time_point GetLastTime() const;
 
-    void Configure();
-
-    void Finish();
-
     ~TClient() = default;
 
     TClient(TClient const &) = delete;
@@ -175,7 +175,6 @@ private:
 
     char Buffer[DOMAIN_MAX_LENGTH] = {0};
     time_point LastAction;
-    TIOWorker *const Context;
     TGetaddrinfoTask QueryProcessor;
     std::unique_ptr<TIOTask> Task;
 };
