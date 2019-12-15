@@ -99,9 +99,9 @@ public:
 
     void Reconfigure(bool in, bool out, uint32_t other = 0);
 
-    [[maybe_unused]] int Read(char *, size_t);
+    // [[maybe_unused]] int Read(char *, size_t);
 
-    [[maybe_unused]] void Write(const char *, size_t);
+    // [[maybe_unused]] void Write(const char *, size_t);
 
     void Callback(uint32_t events) noexcept;
 
@@ -176,7 +176,7 @@ private:
     char Buffer[DOMAIN_MAX_LENGTH] = {0};
     time_point LastAction;
     TIOWorker *const Context;
-    TGetaddrinfoTask QueryProcesser;
+    TGetaddrinfoTask QueryProcessor;
     std::unique_ptr<TIOTask> Task;
 };
 

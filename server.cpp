@@ -159,7 +159,7 @@ void TIOTask::Reconfigure(bool in, bool out, uint32_t other) {
     Context->Edit(fd, &e);
 }
 
-int TIOTask::Read(char *buffer, size_t size) {
+/*int TIOTask::Read(char *buffer, size_t size) {
     int code = recv(fd, buffer, size, 0);
     if (code < 0) {
         FinishHandler();
@@ -173,7 +173,7 @@ void TIOTask::Write(const char *buffer, size_t size) {
     if (code < 0) {
         FinishHandler();
     }
-}
+}*/
 
 void TIOTask::Callback(uint32_t events) noexcept {
     if (IsClosingEvent(events)) {
@@ -257,20 +257,20 @@ TClient::TClient(TIOWorker *const io_context, int fd) : Context(io_context) {
 
     std::function<void(uint32_t)> callback =
             [this, fd](uint32_t events) noexcept {
-                if ((events & EPOLLIN) && QueryProcesser.HaveFreeSpace()) {
-                    int code = recv(fd, &Buffer, DOMAIN_MAX_LENGTH, 0);
-                    if (code < 0) {
-                        Finish();
-                    } else {
-                        QueryProcesser.SetTask(Buffer, code);
-                    }
-                    LastAction = std::chrono::steady_clock::now();
-                } else if ((events & EPOLLOUT) && QueryProcesser.HaveResult()) {
-                    std::string tmp = QueryProcesser.GetResult();
+                if ((events & EPOLLOUT) && QueryProcessor.HaveResult()) {
+                    std::string tmp = QueryProcessor.GetResult();
                     int code = send(fd, tmp.c_str(), tmp.size(), 0);
 
                     if (code < 0) {
                         Finish();
+                    }
+                    LastAction = std::chrono::steady_clock::now();
+                } else if ((events & EPOLLIN) && QueryProcessor.HaveFreeSpace()) {
+                    int code = recv(fd, &Buffer, DOMAIN_MAX_LENGTH, 0);
+                    if (code < 0) {
+                        Finish();
+                    } else {
+                        QueryProcessor.SetTask(Buffer, code);
                     }
                     LastAction = std::chrono::steady_clock::now();
                 }
@@ -284,8 +284,8 @@ std::chrono::steady_clock::time_point TClient::GetLastTime() const {
 }
 
 void TClient::Configure() {
-    bool in = QueryProcesser.HaveFreeSpace();
-    bool out = QueryProcesser.HaveUnprocessed();
+    bool in = QueryProcessor.HaveFreeSpace();
+    bool out = QueryProcessor.HaveUnprocessed();
     Task->Reconfigure(in, out);
 }
 
