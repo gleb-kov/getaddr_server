@@ -12,13 +12,14 @@ TIOWorker::TClientTimer::TClientTimer(int64_t timeout) : TimeOut(timeout) {}
 
 void TIOWorker::TClientTimer::AddClient(std::unique_ptr<TClient> &client) {
     time_point curTime = std::chrono::steady_clock::now();
-    auto insert1 = CachedAction.insert({client.get(), curTime});
+    TClient * const con = client.get();
+    auto insert1 = CachedAction.insert({con, curTime});
     if (!insert1.second) {
         throw std::runtime_error("Failed insertion into TClientTimer");
     }
-    auto insert2 = Connections.insert({{curTime, client.get()}, std::move(client)});
+    auto insert2 = Connections.insert({{curTime, con}, std::move(client)});
     if (!insert2.second) {
-        CachedAction.erase(client.get());
+        CachedAction.erase(con);
         throw std::runtime_error("Failed insertion into TClientTimer");
     }
 }
