@@ -8,7 +8,9 @@ add_executable(getaddr_server
         server.cpp
         server.h
         gai_task.cpp
-        gai_task.h)
+        gai_task.h
+        ioworker.h
+        iotask.h)
 
 if (CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_GNUCXX)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -O2 -pedantic -pthread")
