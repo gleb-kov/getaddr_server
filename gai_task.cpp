@@ -17,12 +17,10 @@ TGetaddrinfoTask::TGetaddrinfoTask()
                       break;
                   }
 
-                  char *URL = Queries.front().first;
-                  size_t URLSize = Queries.front().second;
+                  char *URL = Queries.front();
                   Queries.pop();
-
                   lg.unlock();
-                  std::string result = ProcessNext(URL, URLSize);
+                  std::string result = ProcessNext(URL);
                   lg.lock();
                   HaveWork = !Queries.empty();
                   Results.push(result);
@@ -30,19 +28,20 @@ TGetaddrinfoTask::TGetaddrinfoTask()
           })
 {}
 
-void TGetaddrinfoTask::SetTask(char *host, size_t len) {
+void TGetaddrinfoTask::SetTask(char *host, size_t) {
+    if (host == nullptr) return;
     std::unique_lock<std::mutex> lg(Mutex);
-    if (Queries.size() + Results.size() >= QUERIES_MAX) {
+    if (Queries.size() + Results.size() >= QUERIES_MAX_NUMBER) {
         throw std::runtime_error("TGetaddrinfotask::SetTask() on full queries queue");
     }
-    Queries.push({host, len});
+    Queries.push(host);
     HaveWork = true;
     CV.notify_all();
 }
 
 bool TGetaddrinfoTask::HaveFreeSpace() const {
     std::unique_lock<std::mutex> lg(Mutex);
-    return Queries.size() + Results.size() < QUERIES_MAX;
+    return Queries.size() + Results.size() < QUERIES_MAX_NUMBER;
 }
 
 bool TGetaddrinfoTask::HaveUnprocessed() const {
@@ -65,11 +64,6 @@ std::string TGetaddrinfoTask::GetResult() {
     return tmp;
 }
 
-void TGetaddrinfoTask::Stop() {
-    std::unique_lock<std::mutex> lg(Mutex);
-    Cancel.store(true);
-}
-
 TGetaddrinfoTask::~TGetaddrinfoTask() {
     Cancel.store(true);
     {
@@ -80,11 +74,8 @@ TGetaddrinfoTask::~TGetaddrinfoTask() {
     Thread.join();
 }
 
-std::string TGetaddrinfoTask::ProcessNext(char *host, size_t size) {
+std::string TGetaddrinfoTask::ProcessNext(char *host) {
     std::string tmp = host;
-    if (tmp.size() > size) {
-        tmp.erase(tmp.begin() + size, tmp.end());
-    }
     while (!tmp.empty() && (tmp.back() == '\r' || tmp.back() == '\n')) {
         tmp.pop_back();
     }

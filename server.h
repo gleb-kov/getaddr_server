@@ -179,9 +179,7 @@ public:
     TClient &operator=(TClient &&) = delete;
 
 private:
-    static const size_t DOMAIN_MAX_LENGTH = 255;
-
-    char Buffer[DOMAIN_MAX_LENGTH] = {0};
+    char Buffer[TGetaddrinfoTask::QUERY_MAX_LENGTH] = {0};
     TGetaddrinfoTask QueryProcessor;
     std::unique_ptr<TIOTask> Task;
 };

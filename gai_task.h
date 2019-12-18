@@ -28,8 +28,6 @@ public:
 
     result_t GetResult();
 
-    void Stop();
-
     ~TGetaddrinfoTask();
 
     TGetaddrinfoTask(TGetaddrinfoTask const &) = delete;
@@ -41,12 +39,15 @@ public:
     TGetaddrinfoTask &operator=(TGetaddrinfoTask &&) = delete;
 
 private:
-    result_t ProcessNext(char *, [[maybe_unused]] size_t);
+    result_t ProcessNext(char *);
+
+public:
+    static const size_t QUERIES_MAX_NUMBER = 1000;
+    static const size_t QUERY_MAX_LENGTH = QUERIES_MAX_NUMBER;
+    static const size_t DOMAIN_MAX_LENGTH = 255;
+    static const size_t IP_NODE_MAX_SIZE = 46;
 
 private:
-    static const size_t IP_NODE_MAX_SIZE = 46;
-    static const size_t QUERIES_MAX = 1000;
-
     addrinfo Hints;
     addrinfo *Info;
     addrinfo *Node;
@@ -55,7 +56,7 @@ private:
 private:
     mutable std::mutex Mutex;
     bool HaveWork;
-    std::queue<std::pair<char *, size_t>> Queries;
+    std::queue<char *> Queries;
     std::queue<result_t> Results;
 
     std::atomic<bool> Cancel;
