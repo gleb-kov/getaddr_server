@@ -49,8 +49,6 @@ public:
 
 private:
     addrinfo Hints;
-    addrinfo *Info;
-    addrinfo *Node;
     char AddrStr[IP_NODE_MAX_SIZE] = {0};
 
 private:

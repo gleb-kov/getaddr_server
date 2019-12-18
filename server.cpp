@@ -283,7 +283,7 @@ TClient::TClient(TIOWorker *const io_context, int fd, uint32_t startEvents) {
                 if (QueryProcessor.HaveFreeSpace()) {
                     actions |= EPOLLIN;
                 }
-                if (QueryProcessor.HaveUnprocessed()) {
+                if (QueryProcessor.HaveUnprocessed() || QueryProcessor.HaveResult()) {
                     actions |= EPOLLOUT;
                 }
                 self->Reconfigure(actions);

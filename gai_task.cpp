@@ -2,11 +2,9 @@
 
 TGetaddrinfoTask::TGetaddrinfoTask()
         : Hints{0, AF_UNSPEC, SOCK_STREAM}
-        , Info(nullptr)
-        , Node(nullptr)
         , HaveWork(false)
-        , Cancel(false),
-          Thread([this] {
+        , Cancel(false)
+        , Thread([this] {
               while (true) {
                   std::unique_lock<std::mutex> lg(Mutex);
                   CV.wait(lg, [this] {
@@ -37,16 +35,18 @@ void TGetaddrinfoTask::SetTask(const char *host, size_t len) {
     if (QueryPrefix.size() > DOMAIN_MAX_LENGTH) {
         throw std::out_of_range("Too long domain.");
     }
+    size_t last = 0;
     for (size_t i = 0; i < len; i++) {
         if (host[i] == '\0' || host[i] == '\r' || host[i] == '\n') {
+            QueryPrefix.append(host + last, host + i);
+            last = i + 1;
             if (!QueryPrefix.empty()) {
                 Queries.push(QueryPrefix);
             }
             QueryPrefix.clear();
-            continue;
         }
-        QueryPrefix += host[i];
     }
+    QueryPrefix.append(host + last, host + len);
     HaveWork = !Queries.empty();
     CV.notify_all();
 }
@@ -87,29 +87,31 @@ TGetaddrinfoTask::~TGetaddrinfoTask() {
 }
 
 std::string TGetaddrinfoTask::ProcessNext(std::string &host) {
-    int errorCode = getaddrinfo(host.c_str(), nullptr, &Hints, &Info);
-    std::string res = "Host: " + host + "\n";
+    addrinfo *info = nullptr;
+    addrinfo *node = nullptr;
+    void *ptr = nullptr;
 
+    int errorCode = getaddrinfo(host.c_str(), nullptr, &Hints, &info);
+    std::string res = "Host: " + host + "\n";
     if (errorCode != 0) {
-        res += "Getaddrinfo() failed.";
-        // res += "Error: " + errorCode
+        res += "Getaddrinfo() failed. ";
+        res += gai_strerror(errorCode);
         res += "\n";
         return res;
     }
 
-    void *ptr = nullptr;
-    for (Node = Info; Node; Node = Node->ai_next) {
-        if (Node->ai_family == AF_INET) {
-            ptr = &(reinterpret_cast<sockaddr_in *>(Node->ai_addr)->sin_addr);
-        } else if (Node->ai_family == AF_INET6) {
-            ptr = &(reinterpret_cast<sockaddr_in6 *>(Node->ai_addr)->sin6_addr);
+    for (node = info; node; node = node->ai_next) {
+        if (node->ai_family == AF_INET) {
+            ptr = &(reinterpret_cast<sockaddr_in *>(node->ai_addr)->sin_addr);
+        } else if (node->ai_family == AF_INET6) {
+            ptr = &(reinterpret_cast<sockaddr_in6 *>(node->ai_addr)->sin6_addr);
         } else {
             continue;
         }
-        inet_ntop(Node->ai_family, ptr, AddrStr, IP_NODE_MAX_SIZE);
+        inet_ntop(node->ai_family, ptr, AddrStr, IP_NODE_MAX_SIZE);
         res += AddrStr;
         res += "\n";
     }
-    freeaddrinfo(Info);
+    freeaddrinfo(info);
     return res;
 }
