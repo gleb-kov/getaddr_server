@@ -10,15 +10,15 @@ namespace {
 
 TIOWorker::TClientTimer::TClientTimer(int64_t timeout) : TimeOut(timeout) {}
 
-void TIOWorker::TClientTimer::AddClient(TClient *client) {
+void TIOWorker::TClientTimer::AddClient(std::unique_ptr<TClient> &client) {
     time_point curTime = std::chrono::steady_clock::now();
-    auto insert1 = CachedAction.insert({client, curTime});
+    auto insert1 = CachedAction.insert({client.get(), curTime});
     if (!insert1.second) {
         throw std::runtime_error("Failed insertion into TClientTimer");
     }
-    auto insert2 = Connections.insert({{curTime, client}, std::unique_ptr<TClient>(client)});
+    auto insert2 = Connections.insert({{curTime, client.get()}, std::move(client)});
     if (!insert2.second) {
-        CachedAction.erase(client);
+        CachedAction.erase(client.get());
         throw std::runtime_error("Failed insertion into TClientTimer");
     }
 }
@@ -73,7 +73,7 @@ TIOWorker::TIOWorker(int64_t sockTimeout) : Clients(sockTimeout) {
     }
 }
 
-void TIOWorker::ConnectClient(TClient *client) {
+void TIOWorker::ConnectClient(std::unique_ptr<TClient> &client) {
     Clients.AddClient(client);
 }
 
@@ -246,13 +246,11 @@ TServer::TServer(TIOWorker &io_context, uint32_t address, uint16_t port)
                     return;
                 }
 
-                TClient *clientPtr = nullptr;
                 try {
-                    clientPtr = new TClient(&io_context, sfd);
+                    std::unique_ptr<TClient> clientPtr =
+                            std::make_unique<TClient>(&io_context, sfd);
                     io_context.ConnectClient(clientPtr);
-                } catch (...) {
-                    delete clientPtr;
-                }
+                } catch (...) {}
             };
     std::function<void()> finisher = [] {};
     Task = std::make_unique<TIOTask>(&io_context, fd, receiver, finisher, EPOLLIN);

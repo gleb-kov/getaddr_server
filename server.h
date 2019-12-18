@@ -28,7 +28,7 @@ private:
     struct TClientTimer {
         explicit TClientTimer(int64_t timeout);
 
-        void AddClient(TClient *client);
+        void AddClient(std::unique_ptr<TClient> &client);
 
         void RefuseClient(TClient *client);
 
@@ -59,7 +59,7 @@ private:
 public:
     explicit TIOWorker(int64_t sockTimeout = 600);
 
-    void ConnectClient(TClient *client);
+    void ConnectClient(std::unique_ptr<TClient> &client);
 
     void RefuseClient(TClient *client);
 
