@@ -28,14 +28,26 @@ TGetaddrinfoTask::TGetaddrinfoTask()
           })
 {}
 
-void TGetaddrinfoTask::SetTask(const char *host, size_t) {
+void TGetaddrinfoTask::SetTask(const char *host, size_t len) {
     if (host == nullptr) return;
     std::unique_lock<std::mutex> lg(Mutex);
     if (Queries.size() + Results.size() >= QUERIES_MAX_NUMBER) {
         throw std::runtime_error("TGetaddrinfotask::SetTask() on full queries queue");
     }
-    Queries.push(host);
-    HaveWork = true;
+    if (QueryPrefix.size() > DOMAIN_MAX_LENGTH) {
+        throw std::out_of_range("Too long domain.");
+    }
+    for (size_t i = 0; i < len; i++) {
+        if (host[i] == '\0' || host[i] == '\r' || host[i] == '\n') {
+            if (!QueryPrefix.empty()) {
+                Queries.push(QueryPrefix);
+            }
+            QueryPrefix.clear();
+            continue;
+        }
+        QueryPrefix += host[i];
+    }
+    HaveWork = !Queries.empty();
     CV.notify_all();
 }
 
@@ -75,10 +87,6 @@ TGetaddrinfoTask::~TGetaddrinfoTask() {
 }
 
 std::string TGetaddrinfoTask::ProcessNext(std::string &host) {
-    while (!host.empty() && (host.back() == '\r' || host.back() == '\n')) {
-        host.pop_back();
-    }
-
     int errorCode = getaddrinfo(host.c_str(), nullptr, &Hints, &Info);
     std::string res = "Host: " + host + "\n";
 

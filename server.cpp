@@ -272,7 +272,11 @@ TClient::TClient(TIOWorker *const io_context, int fd, uint32_t startEvents) {
                 } else if ((events & EPOLLIN) && QueryProcessor.HaveFreeSpace()) {
                     int code = self->Read(Buffer, TGetaddrinfoTask::QUERY_MAX_LENGTH);
                     if (code > 0) {
-                        QueryProcessor.SetTask(Buffer, code);
+                        try {
+                            QueryProcessor.SetTask(Buffer, code);
+                        } catch(...) {
+                            self->Close();
+                        }
                     }
                 }
                 uint32_t actions = 0;
