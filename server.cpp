@@ -142,8 +142,9 @@ TIOTask::TIOTask(TIOWorker *const context,
         : Context(context)
         , fd(fd)
         , CallbackHandler(std::move(callback))
-        , FinishHandler(std::move(finisher)) {
-    epoll_event event{events, {this}};
+        , FinishHandler(std::move(finisher))
+{
+    epoll_event event{(CLOSE_EVENTS | events), {this}};
     Context->Add(fd, &event);
 }
 
@@ -152,8 +153,7 @@ TIOTask::TIOTask(TIOWorker *const context,
 }*/
 
 void TIOTask::Reconfigure(uint32_t other) {
-    uint32_t events = (CLOSE_EVENTS | other);
-    epoll_event e{events, {this}};
+    epoll_event e{(CLOSE_EVENTS | other), {this}};
     Context->Edit(fd, &e);
 }
 
@@ -162,6 +162,7 @@ int TIOTask::Read(char *buffer, size_t size) {
     if (code < 0) {
         FinishHandler();
     }
+    UpdateTime();
     return code;
 }
 
@@ -171,6 +172,15 @@ void TIOTask::Write(const char *buffer, size_t size) {
     if (code < 0) {
         FinishHandler();
     }
+    UpdateTime();
+}
+
+void TIOTask::UpdateTime() {
+    LastAction = std::chrono::steady_clock::now();
+}
+
+TIOTask::time_point TIOTask::GetLastTime() const {
+    return LastAction;
 }
 
 void TIOTask::Callback(uint32_t events) noexcept {
@@ -196,7 +206,8 @@ bool TIOTask::IsClosingEvent(uint32_t events) {
 
 TServer::TServer(TIOWorker &io_context, uint32_t address, uint16_t port)
         : Address(address)
-        , Port(port) {
+        , Port(port)
+{
     int fd = socket(AF_INET, SOCK_STREAM, 0);
     if (fd < 0) {
         throw std::runtime_error(std::string("TServer() socket() call. ") + std::strerror(errno));
@@ -248,7 +259,6 @@ TServer::TServer(TIOWorker &io_context, uint32_t address, uint16_t port)
 }
 
 TClient::TClient(TIOWorker *const io_context, int fd) {
-    uint32_t events = (TIOTask::CLOSE_EVENTS | EPOLLIN);
     std::function<void()> finish = [this, io_context] { io_context->RefuseClient(this); };
 
     TIOTask::callback_t callback =
@@ -256,11 +266,9 @@ TClient::TClient(TIOWorker *const io_context, int fd) {
                 if ((events & EPOLLOUT) && QueryProcessor.HaveResult()) {
                     std::string tmp = QueryProcessor.GetResult();
                     self->Write(tmp.c_str(), tmp.size());
-                    LastAction = std::chrono::steady_clock::now();
                 } else if ((events & EPOLLIN) && QueryProcessor.HaveFreeSpace()) {
                     int code = self->Read(Buffer, DOMAIN_MAX_LENGTH);
                     QueryProcessor.SetTask(Buffer, code);
-                    LastAction = std::chrono::steady_clock::now();
                 }
                 uint32_t actions = 0;
                 if (QueryProcessor.HaveFreeSpace()) {
@@ -271,9 +279,9 @@ TClient::TClient(TIOWorker *const io_context, int fd) {
                 }
                 self->Reconfigure(actions);
             };
-    Task = std::make_unique<TIOTask>(io_context, fd, callback, finish, events);
+    Task = std::make_unique<TIOTask>(io_context, fd, callback, finish, EPOLLIN);
 }
 
-std::chrono::steady_clock::time_point TClient::GetLastTime() const {
-    return LastAction;
+TClient::time_point TClient::GetLastTime() const {
+    return Task->GetLastTime();
 }

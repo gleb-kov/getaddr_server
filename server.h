@@ -21,10 +21,11 @@
 class TClient;
 
 class TIOWorker {
-    class TClientTimer {
-        using time_point = std::chrono::steady_clock::time_point;
+public:
+    using time_point = std::chrono::steady_clock::time_point;
 
-    public:
+private:
+    struct TClientTimer {
         explicit TClientTimer(int64_t timeout);
 
         void AddClient(TClient *client);
@@ -54,6 +55,7 @@ class TIOWorker {
         std::map<std::pair<time_point, TClient *>,
                 std::unique_ptr<TClient>> Connections, Fake;
     };
+
 public:
     explicit TIOWorker(int64_t sockTimeout = 600);
 
@@ -91,6 +93,7 @@ private:
 
 class TIOTask {
 public:
+    using time_point = TIOWorker::time_point;
     using callback_t = std::function<void(TIOTask * const, uint32_t)>;
 
     TIOTask(TIOWorker *context,
@@ -106,6 +109,10 @@ public:
     [[maybe_unused]] int Read(char *, size_t);
 
     [[maybe_unused]] void Write(const char *, size_t);
+
+    void UpdateTime();
+
+    time_point GetLastTime() const;
 
     void Callback(uint32_t events) noexcept;
 
@@ -129,6 +136,7 @@ private:
     TIOWorker *const Context;
     const int fd;
     callback_t CallbackHandler;
+    time_point LastAction;
     std::function<void()> FinishHandler;
 };
 
@@ -153,9 +161,9 @@ private:
 };
 
 class TClient {
-    using time_point = std::chrono::steady_clock::time_point;
-
 public:
+    using time_point = TIOWorker::time_point;
+
     TClient(TIOWorker *io_context, int fd);
 
     time_point GetLastTime() const;
@@ -174,7 +182,6 @@ private:
     static const size_t DOMAIN_MAX_LENGTH = 255;
 
     char Buffer[DOMAIN_MAX_LENGTH] = {0};
-    time_point LastAction;
     TGetaddrinfoTask QueryProcessor;
     std::unique_ptr<TIOTask> Task;
 };
