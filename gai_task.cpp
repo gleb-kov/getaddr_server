@@ -10,14 +10,14 @@ TGetaddrinfoTask::TGetaddrinfoTask()
               while (true) {
                   std::unique_lock<std::mutex> lg(Mutex);
                   CV.wait(lg, [this] {
-                      return Cancel.load() || HaveWork;
+                      return Cancel || HaveWork;
                   });
 
                   if (Cancel) {
                       break;
                   }
 
-                  char *URL = Queries.front();
+                  std::string URL = Queries.front();
                   Queries.pop();
                   lg.unlock();
                   std::string result = ProcessNext(URL);
@@ -28,7 +28,7 @@ TGetaddrinfoTask::TGetaddrinfoTask()
           })
 {}
 
-void TGetaddrinfoTask::SetTask(char *host, size_t) {
+void TGetaddrinfoTask::SetTask(const char *host, size_t) {
     if (host == nullptr) return;
     std::unique_lock<std::mutex> lg(Mutex);
     if (Queries.size() + Results.size() >= QUERIES_MAX_NUMBER) {
@@ -65,24 +65,22 @@ std::string TGetaddrinfoTask::GetResult() {
 }
 
 TGetaddrinfoTask::~TGetaddrinfoTask() {
-    Cancel.store(true);
     {
         std::unique_lock<std::mutex> lg(Mutex);
+        Cancel = true;
         CV.notify_all();
         kill(Thread.native_handle(), SIGINT);
     }
     Thread.join();
 }
 
-std::string TGetaddrinfoTask::ProcessNext(char *host) {
-    std::string tmp = host;
-    while (!tmp.empty() && (tmp.back() == '\r' || tmp.back() == '\n')) {
-        tmp.pop_back();
+std::string TGetaddrinfoTask::ProcessNext(std::string &host) {
+    while (!host.empty() && (host.back() == '\r' || host.back() == '\n')) {
+        host.pop_back();
     }
 
-    int errorCode = getaddrinfo(tmp.c_str(), nullptr, &Hints, &Info);
-
-    std::string res = "Host: " + tmp + "\n";
+    int errorCode = getaddrinfo(host.c_str(), nullptr, &Hints, &Info);
+    std::string res = "Host: " + host + "\n";
 
     if (errorCode != 0) {
         res += "Getaddrinfo() failed.";

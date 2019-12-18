@@ -18,7 +18,7 @@ class TGetaddrinfoTask {
 public:
     TGetaddrinfoTask();
 
-    void SetTask(char *, size_t);
+    void SetTask(const char *, size_t);
 
     bool HaveFreeSpace() const;
 
@@ -39,7 +39,7 @@ public:
     TGetaddrinfoTask &operator=(TGetaddrinfoTask &&) = delete;
 
 private:
-    result_t ProcessNext(char *);
+    result_t ProcessNext(std::string &);
 
 public:
     static const size_t QUERIES_MAX_NUMBER = 1000;
@@ -56,10 +56,10 @@ private:
 private:
     mutable std::mutex Mutex;
     bool HaveWork;
-    std::queue<char *> Queries;
+    bool Cancel;
+    std::queue<std::string> Queries;
     std::queue<result_t> Results;
 
-    std::atomic<bool> Cancel;
     std::condition_variable CV;
     std::thread Thread;
 };
