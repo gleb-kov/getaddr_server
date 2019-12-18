@@ -102,19 +102,21 @@ public:
             std::function<void()> &finisher,
             uint32_t events);
 
-    // void SetTask(callback_t &callback);
+    [[deprecated]] void SetTask(callback_t &callback);
 
+    /* TClient api */
     void Reconfigure(uint32_t other = 0);
 
-    [[maybe_unused]] int Read(char *, size_t);
+    [[nodiscard]] int Read(char *, size_t);
 
-    [[maybe_unused]] void Write(const char *, size_t);
+    int Write(const char *, size_t);
 
-    void UpdateTime();
+    void Close();
+
+    /* TIOWorker api */
+    void Callback(uint32_t events) noexcept;
 
     time_point GetLastTime() const;
-
-    void Callback(uint32_t events) noexcept;
 
     ~TIOTask();
 
@@ -128,11 +130,15 @@ public:
 
     static bool IsClosingEvent(uint32_t event);
 
+private:
+    void UpdateTime();
+
 public:
     static constexpr uint32_t CLOSE_EVENTS =
             (EPOLLERR | EPOLLRDHUP | EPOLLHUP);
 
 private:
+    bool Destroy = false;
     TIOWorker *const Context;
     const int fd;
     callback_t CallbackHandler;
@@ -164,7 +170,7 @@ class TClient {
 public:
     using time_point = TIOWorker::time_point;
 
-    TClient(TIOWorker *io_context, int fd);
+    TClient(TIOWorker *io_context, int fd, uint32_t startEvents);
 
     time_point GetLastTime() const;
 
