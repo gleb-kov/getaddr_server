@@ -52,6 +52,7 @@ public:
 
 private:
     char Buffer[TGetaddrinfoTask::QUERY_MAX_LENGTH] = {0};
+    std::string ResultSuffix;
     TGetaddrinfoTask QueryProcessor;
     std::unique_ptr<TIOTask> Task;
 };
