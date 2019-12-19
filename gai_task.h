@@ -6,7 +6,6 @@
 #include <string>
 #include <queue>
 
-#include <atomic>
 #include <condition_variable>
 #include <csignal>
 #include <mutex>

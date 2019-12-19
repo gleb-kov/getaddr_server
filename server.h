@@ -5,10 +5,8 @@
 #include <cstring>
 #include <functional>
 #include <memory>
-#include <netinet/in.h>
 #include <sys/epoll.h>
 #include <sys/socket.h>
-#include <unistd.h>
 
 #include "ioworker.h"
 #include "iotask.h"
