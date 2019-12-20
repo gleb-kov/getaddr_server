@@ -7,10 +7,11 @@
 #include <memory>
 #include <sys/epoll.h>
 #include <sys/socket.h>
+#include <unordered_map>
 
 #include "ioworker.h"
 #include "iotask.h"
-#include "gai_task.h"
+#include "gai_client.h"
 
 class TServer {
 public:
@@ -29,31 +30,7 @@ public:
 private:
     const uint32_t Address;
     const uint16_t Port;
-    std::unique_ptr<TIOTask> Task;
-};
-
-class TClient {
-public:
-    using time_point = TIOWorker::time_point;
-
-    TClient(TIOWorker *io_context, int fd, uint32_t startEvents);
-
-    time_point GetLastTime() const;
-
-    ~TClient() = default;
-
-    TClient(TClient const &) = delete;
-
-    TClient(TClient &&) = delete;
-
-    TClient &operator=(TClient const &) = delete;
-
-    TClient &operator=(TClient &&) = delete;
-
-private:
-    char Buffer[TGetaddrinfoTask::QUERY_MAX_LENGTH] = {0};
-    std::string ResultSuffix;
-    TGetaddrinfoTask QueryProcessor;
+    std::unordered_map<TGaiClient *, std::unique_ptr<TGaiClient>> storage;
     std::unique_ptr<TIOTask> Task;
 };
 

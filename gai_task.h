@@ -54,8 +54,7 @@ private:
     mutable std::mutex Mutex;
     bool HaveWork;
     bool Cancel;
-    std::string QueryPrefix;  // first part of received domain
-    // std::string ResultSuffix; // last part of sending domain
+    std::string QueryPrefix;  // prefix of received domain
     std::queue<std::string> Queries;
     std::queue<result_t> Results;
 
