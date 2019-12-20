@@ -35,8 +35,8 @@ int64_t TIOWorker::TTimer::NextCheck() {
     if (Connections.empty()) {
         return -1;
     }
-    time_point curtime = std::chrono::steady_clock::now();
-    int64_t diff = TimeDiff(curtime, Connections.begin()->first.first);
+    time_point curTime = std::chrono::steady_clock::now();
+    int64_t diff = TimeDiff(curTime, Connections.begin()->first.first);
     return (diff > 0 ? diff : -1);
 }
 

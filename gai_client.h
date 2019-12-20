@@ -30,9 +30,9 @@ public:
     TIOTask::callback_t callback;
 
 private:
-    char Buffer[TGetaddrinfoTask::QUERY_MAX_LENGTH] = {0};
-    std::string ResultSuffix;
-    TGetaddrinfoTask QueryProcessor;
+    char Buffer[TGaiTask::QUERY_MAX_LENGTH] = {0};
+    TGaiTask::result_t ResultSuffix;
+    TGaiTask QueryProcessor;
 };
 
 #endif //GETADDR_SERVER_GAI_CLIENT_H

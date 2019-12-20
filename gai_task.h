@@ -11,11 +11,11 @@
 #include <mutex>
 #include <thread>
 
-class TGetaddrinfoTask {
+class TGaiTask {
 public:
     using result_t = std::string;
 
-    TGetaddrinfoTask();
+    TGaiTask();
 
     void SetTask(const char *host, size_t len);
 
@@ -27,15 +27,15 @@ public:
 
     [[nodiscard]] result_t GetResult();
 
-    ~TGetaddrinfoTask();
+    ~TGaiTask();
 
-    TGetaddrinfoTask(TGetaddrinfoTask const &) = delete;
+    TGaiTask(TGaiTask const &) = delete;
 
-    TGetaddrinfoTask(TGetaddrinfoTask &&) = delete;
+    TGaiTask(TGaiTask &&) = delete;
 
-    TGetaddrinfoTask &operator=(TGetaddrinfoTask const &) = delete;
+    TGaiTask &operator=(TGaiTask const &) = delete;
 
-    TGetaddrinfoTask &operator=(TGetaddrinfoTask &&) = delete;
+    TGaiTask &operator=(TGaiTask &&) = delete;
 
 private:
     [[nodiscard]] result_t ProcessNext(std::string &);

@@ -10,12 +10,8 @@ void TGaiClient::CallbackWrapper(TIOTask *const self, uint32_t events) noexcept 
     if ((events & EPOLLOUT) &&
         (QueryProcessor.HaveResult() || !ResultSuffix.empty()))
     {
-        if (ResultSuffix.size() < 1024) {  // just set custom limit
-            try {
-                ResultSuffix += QueryProcessor.GetResult();
-            } catch (...) {
-                self->Close();
-            }
+        if (ResultSuffix.size() < 1024 && QueryProcessor.HaveResult()) {  // just set custom limit
+            ResultSuffix += QueryProcessor.GetResult();
         }
 
         int code = self->Write(ResultSuffix.c_str(), ResultSuffix.size());
@@ -25,7 +21,7 @@ void TGaiClient::CallbackWrapper(TIOTask *const self, uint32_t events) noexcept 
             self->Close();
         }
     } else if ((events & EPOLLIN) && QueryProcessor.HaveFreeSpace()) {
-        int code = self->Read(Buffer, TGetaddrinfoTask::QUERY_MAX_LENGTH);
+        int code = self->Read(Buffer, TGaiTask::QUERY_MAX_LENGTH);
         if (code > 0) {
             try {
                 QueryProcessor.SetTask(Buffer, code);

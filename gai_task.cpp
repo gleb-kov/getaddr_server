@@ -1,6 +1,6 @@
 #include "gai_task.h"
 
-TGetaddrinfoTask::TGetaddrinfoTask()
+TGaiTask::TGaiTask()
         : Hints{0, AF_UNSPEC, SOCK_STREAM}
         , HaveWork(false)
         , Cancel(false)
@@ -26,11 +26,11 @@ TGetaddrinfoTask::TGetaddrinfoTask()
           })
 {}
 
-void TGetaddrinfoTask::SetTask(const char *host, size_t len) {
+void TGaiTask::SetTask(const char *host, size_t len) {
     if (host == nullptr) return;
     std::unique_lock<std::mutex> lg(Mutex);
     if (Queries.size() + Results.size() >= QUERIES_MAX_NUMBER) {
-        throw std::runtime_error("TGetaddrinfotask::SetTask() on full queries queue");
+        throw std::runtime_error("TGaiTask::SetTask() on full queries queue");
     }
     if (QueryPrefix.size() > DOMAIN_MAX_LENGTH) {
         throw std::out_of_range("Too long domain.");
@@ -51,32 +51,32 @@ void TGetaddrinfoTask::SetTask(const char *host, size_t len) {
     CV.notify_all();
 }
 
-bool TGetaddrinfoTask::HaveFreeSpace() const {
+bool TGaiTask::HaveFreeSpace() const {
     std::unique_lock<std::mutex> lg(Mutex);
     return Queries.size() + Results.size() < QUERIES_MAX_NUMBER;
 }
 
-bool TGetaddrinfoTask::HaveUnprocessed() const {
+bool TGaiTask::HaveUnprocessed() const {
     std::unique_lock<std::mutex> lg(Mutex);
     return HaveWork;
 }
 
-bool TGetaddrinfoTask::HaveResult() const {
+bool TGaiTask::HaveResult() const {
     std::unique_lock<std::mutex> lg(Mutex);
     return !Results.empty();
 }
 
-TGetaddrinfoTask::result_t TGetaddrinfoTask::GetResult() {
+TGaiTask::result_t TGaiTask::GetResult() {
     std::unique_lock<std::mutex> lg(Mutex);
     if (Results.empty()) {
-        throw std::runtime_error("TGetaddrinfotask::GetResult() on empty results queue.");
+        throw std::runtime_error("TGaiTask::GetResult() on empty results queue.");
     }
     result_t tmp = Results.front();
     Results.pop();
     return tmp;
 }
 
-TGetaddrinfoTask::~TGetaddrinfoTask() {
+TGaiTask::~TGaiTask() {
     {
         std::unique_lock<std::mutex> lg(Mutex);
         Cancel = true;
@@ -86,7 +86,7 @@ TGetaddrinfoTask::~TGetaddrinfoTask() {
     Thread.join();
 }
 
-TGetaddrinfoTask::result_t TGetaddrinfoTask::ProcessNext(std::string &host) {
+TGaiTask::result_t TGaiTask::ProcessNext(std::string &host) {
     addrinfo *info = nullptr;
     addrinfo *node = nullptr;
     void *ptr = nullptr;
