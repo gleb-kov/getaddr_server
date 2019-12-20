@@ -38,7 +38,7 @@ private:
 
 class TClient {
 public:
-    TClient(TIOWorker *io_context, int fd);
+    TClient();
 
     ~TClient() = default;
 
@@ -52,7 +52,6 @@ public:
 
 public:
     TIOTask::callback_t callback;
-    std::unique_ptr<TIOTask> Task;
 
 private:
     char Buffer[TGetaddrinfoTask::QUERY_MAX_LENGTH] = {0};

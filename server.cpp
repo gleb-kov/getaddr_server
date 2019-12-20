@@ -131,7 +131,8 @@ void TIOWorker::Exec(int64_t epollTimeout) {
         for (auto it = events.begin(); it != events.begin() + count; it++) {
             auto tmp = static_cast<TIOTask *>(it->data.ptr);
             if (TIOTask::IsClosingEvent(it->events)) {
-                Clients.RefuseClient(tmp);
+                RefuseClient(tmp);
+                tmp->OnDisconnect();
             } else {
                 tmp->Callback(it->events);
             }
@@ -143,17 +144,15 @@ void TIOWorker::Exec(int64_t epollTimeout) {
 TIOTask::TIOTask(TIOWorker *const context,
                  int fd,
                  callback_t &callback,
+                 finish_t &finisher,
                  uint32_t events)
         : Context(context)
         , fd(fd)
         , CallbackHandler(std::move(callback))
+        , FinishHandler(std::move(finisher))
 {
     epoll_event event{(CLOSE_EVENTS | events), {this}};
     Context->Add(fd, &event);
-}
-
-void TIOTask::SetTask(callback_t &callback) {
-    CallbackHandler = std::move(callback);
 }
 
 void TIOTask::Reconfigure(uint32_t other) {
@@ -163,7 +162,7 @@ void TIOTask::Reconfigure(uint32_t other) {
 
 int TIOTask::Read(char *buffer, size_t size) {
     int code = recv(fd, buffer, size, 0);
-    /*if (code < 0) {//
+    /*if (code < 0) {
         Close();
     }*/
     UpdateTime();
@@ -185,6 +184,10 @@ void TIOTask::Close() {
 
 void TIOTask::Callback(uint32_t events) noexcept {
     CallbackHandler(this, events);
+}
+
+void TIOTask::OnDisconnect() noexcept {
+    FinishHandler();
 }
 
 TIOTask::time_point TIOTask::GetLastTime() const {
@@ -217,7 +220,7 @@ TServer::TServer(TIOWorker &io_context, uint32_t address, uint16_t port)
         throw std::runtime_error(std::string("TServer() socket() call. ") + std::strerror(errno));
     }
 
-    sockaddr_in sain;
+    sockaddr_in sain{};
     sain.sin_family = AF_INET;
     sain.sin_addr.s_addr = address;
     sain.sin_port = port;
@@ -252,17 +255,27 @@ TServer::TServer(TIOWorker &io_context, uint32_t address, uint16_t port)
 
                 try {
                     std::unique_ptr<TClient> clientPtr =
-                            std::make_unique<TClient>(&io_context, sfd);
-                    io_context.ConnectClient(clientPtr->Task);
-                    storage.insert({clientPtr.get(), std::move(clientPtr)});
+                            std::make_unique<TClient>();
+                    TClient * ptr = clientPtr.get();
+                    std::function<void()> finisher = [this, ptr]() noexcept {
+                        storage.erase(ptr);
+                    };
+                    std::unique_ptr<TIOTask> task =
+                            std::make_unique<TIOTask>(&io_context,
+                                                      sfd,
+                                                      clientPtr->callback,
+                                                      finisher,
+                                                      EPOLLIN);
+                    io_context.ConnectClient(task);
+                    storage.insert({ptr, std::move(clientPtr)});
                 } catch (...) {}
             };
-    Task = std::make_unique<TIOTask>(&io_context, fd, receiver, EPOLLIN);
+    std::function<void()> fake = []{};
+    Task = std::make_unique<TIOTask>(&io_context, fd, receiver, fake, EPOLLIN);
 }
 
-TClient::TClient(TIOWorker *const io_context, int fd) {
-    callback =
-            [this](TIOTask *const self, uint32_t events) noexcept {
+TClient::TClient() {
+    callback = [this](TIOTask *const self, uint32_t events) noexcept {
                 if ((events & EPOLLOUT) &&
                     (QueryProcessor.HaveResult() || !ResultSuffix.empty()))
                 {
@@ -303,5 +316,4 @@ TClient::TClient(TIOWorker *const io_context, int fd) {
                 }
                 self->Reconfigure(actions);
             };
-    Task = std::make_unique<TIOTask>(io_context, fd, callback, EPOLLIN);
 }

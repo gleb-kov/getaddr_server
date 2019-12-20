@@ -13,15 +13,15 @@ class TIOTask {
 public:
     using time_point = TIOWorker::time_point;
     using callback_t = std::function<void(TIOTask * const, uint32_t)>;
+    using finish_t = std::function<void()>;
 
     TIOTask(TIOWorker *context,
             int fd,
             callback_t &callback,
+            finish_t &finisher,
             uint32_t events);
 
-    [[deprecated]] void SetTask(callback_t &callback);
-
-    /* TClient api */
+    /* Client API */
     void Reconfigure(uint32_t other = 0);
 
     [[nodiscard]] int Read(char *, size_t);
@@ -30,8 +30,10 @@ public:
 
     void Close();
 
-    /* TIOWorker api */
+    /* TIOWorker API */
     void Callback(uint32_t events) noexcept;
+
+    void OnDisconnect() noexcept;
 
     time_point GetLastTime() const;
 
@@ -59,6 +61,7 @@ private:
     TIOWorker *const Context;
     const int fd;
     callback_t CallbackHandler;
+    finish_t FinishHandler;
     time_point LastAction;
 };
 
