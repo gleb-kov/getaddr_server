@@ -12,50 +12,50 @@
 #include <sys/epoll.h>
 #include <unordered_map>
 
-class TClient;
+class TIOTask;
 
 class TIOWorker {
 public:
     using time_point = std::chrono::steady_clock::time_point;
 
 private:
-    struct TClientTimer {
-        explicit TClientTimer(int64_t timeout);
+    struct TTimer {
+        explicit TTimer(int64_t timeout);
 
-        void AddClient(std::unique_ptr<TClient> &client);
+        void AddClient(std::unique_ptr<TIOTask> &client);
 
-        void RefuseClient(TClient *client);
+        void RefuseClient(TIOTask *client);
 
-        [[maybe_unused]] int64_t NextCheck();
+        [[deprecated]] int64_t NextCheck();
 
         void RemoveOld();
 
-        ~TClientTimer() = default;
+        ~TTimer() = default;
 
-        TClientTimer(TClientTimer const &) = delete;
+        TTimer(TTimer const &) = delete;
 
-        TClientTimer(TClientTimer &&) = delete;
+        TTimer(TTimer &&) = delete;
 
-        TClientTimer &operator=(TClientTimer const &) = delete;
+        TTimer &operator=(TTimer const &) = delete;
 
-        TClientTimer &operator=(TClientTimer &&) = delete;
+        TTimer &operator=(TTimer &&) = delete;
 
     private:
         [[nodiscard]] int64_t TimeDiff(time_point const &lhs, time_point const &rhs) const;
 
     private:
         const int64_t TimeOut;
-        std::unordered_map<TClient *, time_point> CachedAction;
-        std::map<std::pair<time_point, TClient *>,
-                std::unique_ptr<TClient>> Connections, Fake;
+        std::unordered_map<TIOTask *, time_point> CachedAction;
+        std::map<std::pair<time_point, TIOTask *>,
+                std::unique_ptr<TIOTask>> Connections, Fake;
     };
 
 public:
     explicit TIOWorker(int64_t sockTimeout = 600);
 
-    void ConnectClient(std::unique_ptr<TClient> &client);
+    void ConnectClient(std::unique_ptr<TIOTask> &client);
 
-    void RefuseClient(TClient *client);
+    void RefuseClient(TIOTask *client);
 
     void Add(int fd, epoll_event *);
 
@@ -82,7 +82,7 @@ public:
 
 private:
     int efd;
-    TClientTimer Clients;
+    TTimer Clients;
 };
 
 #endif //GETADDR_SERVER_IOWORKER_H

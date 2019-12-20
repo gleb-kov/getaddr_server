@@ -17,7 +17,6 @@ public:
     TIOTask(TIOWorker *context,
             int fd,
             callback_t &callback,
-            std::function<void()> &finisher,
             uint32_t events);
 
     [[deprecated]] void SetTask(callback_t &callback);
@@ -61,7 +60,6 @@ private:
     const int fd;
     callback_t CallbackHandler;
     time_point LastAction;
-    std::function<void()> FinishHandler;
 };
 
 #endif //GETADDR_SERVER_IOTASK_H
