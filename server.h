@@ -11,9 +11,7 @@
 
 #include "ioworker.h"
 #include "iotask.h"
-#include "gai_task.h"
-
-class TClient;
+#include "gai_client.h"
 
 class TServer {
 public:
@@ -32,31 +30,8 @@ public:
 private:
     const uint32_t Address;
     const uint16_t Port;
-    std::unordered_map<TClient *, std::unique_ptr<TClient>> storage;
+    std::unordered_map<TGaiClient *, std::unique_ptr<TGaiClient>> storage;
     std::unique_ptr<TIOTask> Task;
-};
-
-class TClient {
-public:
-    TClient();
-
-    ~TClient() = default;
-
-    TClient(TClient const &) = delete;
-
-    TClient(TClient &&) = delete;
-
-    TClient &operator=(TClient const &) = delete;
-
-    TClient &operator=(TClient &&) = delete;
-
-public:
-    TIOTask::callback_t callback;
-
-private:
-    char Buffer[TGetaddrinfoTask::QUERY_MAX_LENGTH] = {0};
-    std::string ResultSuffix;
-    TGetaddrinfoTask QueryProcessor;
 };
 
 #endif //GETADDR_SERVER_SERVER_H

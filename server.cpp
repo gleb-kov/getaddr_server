@@ -131,84 +131,14 @@ void TIOWorker::Exec(int64_t epollTimeout) {
         for (auto it = events.begin(); it != events.begin() + count; it++) {
             auto tmp = static_cast<TIOTask *>(it->data.ptr);
             if (TIOTask::IsClosingEvent(it->events)) {
-                RefuseClient(tmp);
                 tmp->OnDisconnect();
+                RefuseClient(tmp);
             } else {
                 tmp->Callback(it->events);
             }
         }
         Clients.RemoveOld();
     }
-}
-
-TIOTask::TIOTask(TIOWorker *const context,
-                 int fd,
-                 callback_t &callback,
-                 finish_t &finisher,
-                 uint32_t events)
-        : Context(context)
-        , fd(fd)
-        , CallbackHandler(std::move(callback))
-        , FinishHandler(std::move(finisher))
-{
-    epoll_event event{(CLOSE_EVENTS | events), {this}};
-    Context->Add(fd, &event);
-}
-
-void TIOTask::Reconfigure(uint32_t other) {
-    epoll_event e{(CLOSE_EVENTS | other), {this}};
-    Context->Edit(fd, &e);
-}
-
-int TIOTask::Read(char *buffer, size_t size) {
-    int code = recv(fd, buffer, size, 0);
-    /*if (code < 0) {
-        Close();
-    }*/
-    UpdateTime();
-    return code;
-}
-
-int TIOTask::Write(const char *buffer, size_t size) {
-    int code = send(fd, buffer, size, 0);
-    /*if (code < 0) {
-        Close();
-    }*/
-    UpdateTime();
-    return code;
-}
-
-void TIOTask::Close() {
-    Destroy = true;
-}
-
-void TIOTask::Callback(uint32_t events) noexcept {
-    CallbackHandler(this, events);
-}
-
-void TIOTask::OnDisconnect() noexcept {
-    FinishHandler();
-}
-
-TIOTask::time_point TIOTask::GetLastTime() const {
-    return LastAction;
-}
-
-void TIOTask::UpdateTime() {
-    LastAction = std::chrono::steady_clock::now();
-}
-
-TIOTask::~TIOTask() {
-    if (Context) {
-        epoll_event event{0, {this}};
-        Context->TryRemove(fd, &event);
-    }
-    shutdown(fd, SHUT_RDWR);
-    close(fd);
-}
-
-bool TIOTask::IsClosingEvent(uint32_t events) {
-    return ((events & EPOLLERR) || (events & EPOLLRDHUP) || (events & EPOLLHUP));
 }
 
 TServer::TServer(TIOWorker &io_context, uint32_t address, uint16_t port)
@@ -254,9 +184,9 @@ TServer::TServer(TIOWorker &io_context, uint32_t address, uint16_t port)
                 }
 
                 try {
-                    std::unique_ptr<TClient> clientPtr =
-                            std::make_unique<TClient>();
-                    TClient * ptr = clientPtr.get();
+                    std::unique_ptr<TGaiClient> clientPtr =
+                            std::make_unique<TGaiClient>();
+                    TGaiClient * ptr = clientPtr.get();
                     std::function<void()> finisher = [this, ptr]() noexcept {
                         storage.erase(ptr);
                     };
@@ -272,48 +202,4 @@ TServer::TServer(TIOWorker &io_context, uint32_t address, uint16_t port)
             };
     std::function<void()> fake = []{};
     Task = std::make_unique<TIOTask>(&io_context, fd, receiver, fake, EPOLLIN);
-}
-
-TClient::TClient() {
-    callback = [this](TIOTask *const self, uint32_t events) noexcept {
-                if ((events & EPOLLOUT) &&
-                    (QueryProcessor.HaveResult() || !ResultSuffix.empty()))
-                {
-                    if (ResultSuffix.size() < 1024) {  // just set custom limit
-                        try {
-                            ResultSuffix += QueryProcessor.GetResult();
-                        } catch (...) {
-                            self->Close();
-                        }
-                    }
-
-                    int code = self->Write(ResultSuffix.c_str(), ResultSuffix.size());
-                    if (code > 0) {
-                        ResultSuffix.erase(ResultSuffix.begin(), ResultSuffix.begin() + code);
-                    } else {
-                        self->Close();
-                    }
-                } else if ((events & EPOLLIN) && QueryProcessor.HaveFreeSpace()) {
-                    int code = self->Read(Buffer, TGetaddrinfoTask::QUERY_MAX_LENGTH);
-                    if (code > 0) {
-                        try {
-                            QueryProcessor.SetTask(Buffer, code);
-                        } catch(...) {
-                            self->Close();
-                        }
-                    } else {
-                        self->Close();
-                    }
-                }
-                uint32_t actions = 0;
-                if (QueryProcessor.HaveFreeSpace()) {
-                    actions |= EPOLLIN;
-                }
-                if (QueryProcessor.HaveUnprocessed() ||
-                    QueryProcessor.HaveResult() ||
-                    !ResultSuffix.empty()) {
-                    actions |= EPOLLOUT;
-                }
-                self->Reconfigure(actions);
-            };
 }
