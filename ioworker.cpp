@@ -67,9 +67,10 @@ int64_t TIOWorker::TTimer::TimeDiff(time_point const &lhs,
     return std::chrono::duration_cast<std::chrono::seconds>(lhs - rhs).count();
 }
 
-TIOWorker::TIOWorker(int64_t sockTimeout) : Clients(sockTimeout) {
-    efd = epoll_create1(0);
-
+TIOWorker::TIOWorker(int64_t sockTimeout)
+    : efd(epoll_create1(0))
+    , Clients(sockTimeout)
+{
     if (efd < 0) {
         throw std::runtime_error(std::string("TIOWorker() epoll_create() call. ") + std::strerror(errno));
     }

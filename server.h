@@ -75,8 +75,7 @@ public:
                         storage.insert({ptr, std::move(clientPtr)});
                     } catch (...) {}
                 };
-        std::function<void()> fake = []{};
-        Task = std::make_unique<TIOTask>(&io_context, fd, receiver, fake, EPOLLIN);
+        Task = std::make_unique<TIOTask>(&io_context, fd, receiver, []{}, EPOLLIN);
     }
 
     ~TServer() = default;

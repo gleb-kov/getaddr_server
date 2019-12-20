@@ -18,7 +18,7 @@ TGetaddrinfoTask::TGetaddrinfoTask()
                   std::string URL = Queries.front();
                   Queries.pop();
                   lg.unlock();
-                  std::string result = ProcessNext(URL);
+                  result_t result = ProcessNext(URL);
                   lg.lock();
                   HaveWork = !Queries.empty();
                   Results.push(result);
@@ -66,12 +66,12 @@ bool TGetaddrinfoTask::HaveResult() const {
     return !Results.empty();
 }
 
-std::string TGetaddrinfoTask::GetResult() {
+TGetaddrinfoTask::result_t TGetaddrinfoTask::GetResult() {
     std::unique_lock<std::mutex> lg(Mutex);
     if (Results.empty()) {
         throw std::runtime_error("TGetaddrinfotask::GetResult() on empty results queue.");
     }
-    std::string tmp = Results.front();
+    result_t tmp = Results.front();
     Results.pop();
     return tmp;
 }
@@ -86,13 +86,13 @@ TGetaddrinfoTask::~TGetaddrinfoTask() {
     Thread.join();
 }
 
-std::string TGetaddrinfoTask::ProcessNext(std::string &host) {
+TGetaddrinfoTask::result_t TGetaddrinfoTask::ProcessNext(std::string &host) {
     addrinfo *info = nullptr;
     addrinfo *node = nullptr;
     void *ptr = nullptr;
 
     int errorCode = getaddrinfo(host.c_str(), nullptr, &Hints, &info);
-    std::string res = "Host: " + host + "\n";
+    result_t res = "Host: " + host + "\n";
     if (errorCode != 0) {
         res += "Getaddrinfo() failed. ";
         res += gai_strerror(errorCode);

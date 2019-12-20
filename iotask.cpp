@@ -14,6 +14,20 @@ TIOTask::TIOTask(TIOWorker *const context,
     Context->Add(fd, &event);
 }
 
+TIOTask::TIOTask(TIOWorker *const context,
+                 int fd,
+                 callback_t &callback,
+                 finish_t &&finisher,
+                 uint32_t events)
+        : Context(context)
+        , fd(fd)
+        , CallbackHandler(std::move(callback))
+        , FinishHandler(std::move(finisher))
+{
+    epoll_event event{(CLOSE_EVENTS | events), {this}};
+    Context->Add(fd, &event);
+}
+
 void TIOTask::Reconfigure(uint32_t other) {
     epoll_event e{(CLOSE_EVENTS | other), {this}};
     Context->Edit(fd, &e);

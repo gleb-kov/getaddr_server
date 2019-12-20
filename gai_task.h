@@ -12,12 +12,12 @@
 #include <thread>
 
 class TGetaddrinfoTask {
+public:
     using result_t = std::string;
 
-public:
     TGetaddrinfoTask();
 
-    void SetTask(const char *, size_t);
+    void SetTask(const char *host, size_t len);
 
     bool HaveFreeSpace() const;
 
@@ -25,7 +25,7 @@ public:
 
     bool HaveResult() const;
 
-    result_t GetResult();
+    [[nodiscard]] result_t GetResult();
 
     ~TGetaddrinfoTask();
 
@@ -38,7 +38,7 @@ public:
     TGetaddrinfoTask &operator=(TGetaddrinfoTask &&) = delete;
 
 private:
-    result_t ProcessNext(std::string &);
+    [[nodiscard]] result_t ProcessNext(std::string &);
 
 public:
     static const size_t QUERIES_MAX_NUMBER = 1000;
@@ -47,7 +47,7 @@ public:
     static const size_t IP_NODE_MAX_SIZE = 46;
 
 private:
-    addrinfo Hints;
+    const addrinfo Hints;
     char AddrStr[IP_NODE_MAX_SIZE] = {0};
 
 private:

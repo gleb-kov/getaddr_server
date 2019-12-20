@@ -81,7 +81,7 @@ public:
     static const size_t TIOWORKER_EPOLL_MAX = 2000;
 
 private:
-    int efd;
+    const int efd;
     TTimer Clients;
 };
 
