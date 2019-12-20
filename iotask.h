@@ -37,6 +37,8 @@ public:
 
     time_point GetLastTime() const;
 
+    bool Destroying() const;
+
     ~TIOTask();
 
     TIOTask(TIOTask const &) = delete;

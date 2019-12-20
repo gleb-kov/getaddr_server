@@ -1,4 +1,5 @@
-#include "server.h"
+#include "ioworker.h"
+#include "iotask.h"
 
 namespace {
     volatile sig_atomic_t quitSignalFlag = 0;
@@ -129,77 +130,14 @@ void TIOWorker::Exec(int64_t epollTimeout) {
         }
 
         for (auto it = events.begin(); it != events.begin() + count; it++) {
-            auto tmp = static_cast<TIOTask *>(it->data.ptr);
-            if (TIOTask::IsClosingEvent(it->events)) {
-                tmp->OnDisconnect();
-                RefuseClient(tmp);
+            auto curTask = static_cast<TIOTask *>(it->data.ptr);
+            if (TIOTask::IsClosingEvent(it->events) || curTask->Destroying()) {
+                curTask->OnDisconnect();
+                RefuseClient(curTask);
             } else {
-                tmp->Callback(it->events);
+                curTask->Callback(it->events);
             }
         }
         Clients.RemoveOld();
     }
-}
-
-TServer::TServer(TIOWorker &io_context, uint32_t address, uint16_t port)
-        : Address(address)
-        , Port(port)
-{
-    int fd = socket(AF_INET, SOCK_STREAM, 0);
-    if (fd < 0) {
-        throw std::runtime_error(std::string("TServer() socket() call. ") + std::strerror(errno));
-    }
-
-    sockaddr_in sain{};
-    sain.sin_family = AF_INET;
-    sain.sin_addr.s_addr = address;
-    sain.sin_port = port;
-
-    /* some magic to fix bind() EADDRINUSE on free port */
-    int optVal = 1;
-    int sockOptCode = setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &optVal, sizeof optVal);
-    if (sockOptCode < 0) {
-        throw std::runtime_error(std::string("TServer() setsockopt() call. ") + std::strerror(errno));
-    }
-
-    int bindCode = bind(fd, reinterpret_cast<sockaddr const *>(&sain), sizeof sain);
-    if (bindCode < 0) {
-        throw std::runtime_error(std::string("TServer() bind() call. ") + std::strerror(errno));
-    }
-
-    int listenCode = listen(fd, SOMAXCONN);
-    if (listenCode < 0) {
-        throw std::runtime_error(std::string("TServer() listen() call. ") + std::strerror(errno));
-    }
-
-    TIOTask::callback_t receiver =
-            [&io_context, fd, this](TIOTask *const, uint32_t events) noexcept {
-                if (events != EPOLLIN) {
-                    return;
-                }
-
-                int sfd = accept4(fd, nullptr, nullptr, SOCK_NONBLOCK);
-                if (sfd < 0) {
-                    return;
-                }
-
-                try {
-                    std::unique_ptr<TGaiClient> clientPtr =
-                            std::make_unique<TGaiClient>();
-                    TGaiClient * ptr = clientPtr.get();
-                    std::function<void()> finisher = [this, ptr]() noexcept {
-                        storage.erase(ptr);
-                    };
-                    std::unique_ptr<TIOTask> task =
-                            std::make_unique<TIOTask>(&io_context,
-                                                      sfd,
-                                                      clientPtr->callback,
-                                                      finisher,
-                                                      EPOLLIN);
-                    io_context.ConnectClient(task);
-                    storage.insert({ptr, std::move(clientPtr)});
-                } catch (...) {}
-            };
-    std::function<void()> fake = []{};
-    Task = std::make_unique<TIOTask>(&io_context, fd, receiver, fake, EPOLLIN);
 }

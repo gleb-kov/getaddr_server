@@ -53,6 +53,10 @@ TIOTask::time_point TIOTask::GetLastTime() const {
     return LastAction;
 }
 
+bool TIOTask::Destroying() const {
+    return Destroy;
+}
+
 void TIOTask::UpdateTime() {
     LastAction = std::chrono::steady_clock::now();
 }
