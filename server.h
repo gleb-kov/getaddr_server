@@ -61,7 +61,7 @@ public:
                     try {
                         std::unique_ptr<T> clientPtr =
                                 std::make_unique<T>();
-                        T * ptr = clientPtr.get();
+                        T *ptr = clientPtr.get();
                         std::function<void()> finisher = [this, ptr]() noexcept {
                             storage.erase(ptr);
                         };
@@ -75,7 +75,15 @@ public:
                         storage.insert({ptr, std::move(clientPtr)});
                     } catch (...) {}
                 };
-        Task = std::make_unique<TIOTask>(&io_context, fd, receiver, []{}, EPOLLIN);
+        Task = std::make_unique<TIOTask>(&io_context, fd, receiver, [] {}, EPOLLIN);
+    }
+
+    [[maybe_unused]] uint32_t GetAddress() const {
+        return Address;
+    }
+
+    [[maybe_unused]] uint16_t GetPort() const {
+        return Port;
     }
 
     ~TServer() = default;

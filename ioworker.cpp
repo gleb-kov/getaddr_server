@@ -13,7 +13,7 @@ TIOWorker::TTimer::TTimer(int64_t timeout) : TimeOut(timeout) {}
 
 void TIOWorker::TTimer::AddClient(std::unique_ptr<TIOTask> &client) {
     time_point curTime = std::chrono::steady_clock::now();
-    TIOTask * const con = client.get();
+    TIOTask *const con = client.get();
     auto insert1 = CachedAction.insert({con, curTime});
     if (!insert1.second) {
         throw std::runtime_error("Failed insertion into TClientTimer");

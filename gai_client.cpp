@@ -29,13 +29,17 @@ void TGaiClient::CallbackWrapper(TIOTask *const self, uint32_t events) noexcept 
         if (code > 0) {
             try {
                 QueryProcessor.SetTask(Buffer, code);
-            } catch(...) {
+            } catch (...) {
                 self->Close();
             }
         } else {
             self->Close();
         }
     }
+    self->Reconfigure(ConfigureEvents());
+}
+
+uint32_t TGaiClient::ConfigureEvents() noexcept {
     uint32_t actions = 0;
     if (QueryProcessor.HaveFreeSpace()) {
         actions |= EPOLLIN;
@@ -45,5 +49,5 @@ void TGaiClient::CallbackWrapper(TIOTask *const self, uint32_t events) noexcept 
         !ResultSuffix.empty()) {
         actions |= EPOLLOUT;
     }
-    self->Reconfigure(actions);
+    return actions;
 }

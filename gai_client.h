@@ -24,6 +24,8 @@ public:
 private:
     void CallbackWrapper(TIOTask *self, uint32_t events) noexcept;
 
+    uint32_t ConfigureEvents() noexcept;
+
 public:
     TIOTask::callback_t callback;
 
