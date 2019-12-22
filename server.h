@@ -63,7 +63,7 @@ public:
                                 std::make_unique<T>();
                         T *ptr = clientPtr.get();
                         std::function<void()> finisher = [this, ptr]() noexcept {
-                            storage.erase(ptr);
+                            Storage.erase(ptr);
                         };
                         std::unique_ptr<TIOTask> task =
                                 std::make_unique<TIOTask>(&io_context,
@@ -72,7 +72,7 @@ public:
                                                           finisher,
                                                           EPOLLIN);
                         io_context.ConnectClient(task);
-                        storage.insert({ptr, std::move(clientPtr)});
+                        Storage.insert({ptr, std::move(clientPtr)});
                     } catch (...) {}
                 };
         Task = std::make_unique<TIOTask>(&io_context, fd, receiver, [] {}, EPOLLIN);
@@ -99,7 +99,7 @@ public:
 private:
     const uint32_t Address;
     const uint16_t Port;
-    std::unordered_map<T *, std::unique_ptr<T>> storage;
+    std::unordered_map<T *, std::unique_ptr<T>> Storage;
     std::unique_ptr<TIOTask> Task;
 };
 
