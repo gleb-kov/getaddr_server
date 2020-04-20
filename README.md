@@ -1,5 +1,7 @@
 # Project description
-I/O multiplexing library and multithreaded getaddrinfo-server, based on this library.
+I/O multiplexing library and multithreaded getaddrinfo-server, based on this library. 
+
+Library handles exceptions and signals, provides an interface to work with sockets, set different timers and timeouts. Getaddrinfo-server is nslookup tool analog, it distributes CPU-time between clients. 
 
 # How to start:
 Starting server:
